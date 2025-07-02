@@ -5,7 +5,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from langchain.chat_models import ChatOpenAI
 from langchain.agents import initialize_agent, Tool
-from function.googlecalender import check_availability, book_event, book_event_natural
+from function.googlecalendar import check_availability, book_event, book_event_natural
 
 # Load .env environment variables
 load_dotenv()
