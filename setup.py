@@ -1,4 +1,4 @@
-# setup.py
+
 from langchain.agents import Tool, initialize_agent
 from langchain.chat_models import ChatOpenAI
 from function.googlecalendar import (
@@ -8,7 +8,7 @@ from function.googlecalendar import (
     find_free_slots
 )
 
-# Define tools for the agent
+
 tools = [
     Tool.from_function(
         func=check_availability_natural,
