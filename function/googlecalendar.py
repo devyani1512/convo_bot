@@ -5,14 +5,14 @@ from datetime import datetime, timedelta
 import pytz
 import dateparser
 
-# Load credentials and initialize Google Calendar service
+
 creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
 info = json.loads(creds_json)
 credentials = service_account.Credentials.from_service_account_info(
     info, scopes=["https://www.googleapis.com/auth/calendar"]
 )
 service = build("calendar", "v3", credentials=credentials)
-CALENDAR_ID = "primary"  # Use actual email if necessary
+CALENDAR_ID = "primary" 
 
 def parse_datetime(text):
     return dateparser.parse(
