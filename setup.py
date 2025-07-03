@@ -32,7 +32,7 @@ tools = [
     ),
 ]
 
-llm = ChatOpenAI(temperature=0, model="gpt-4")
+llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
 
 agent = initialize_agent(
     tools=tools,
