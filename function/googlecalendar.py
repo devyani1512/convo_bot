@@ -14,6 +14,45 @@ CALENDAR_ID = "primary"  # or your actual calendar ID if needed
 def parse_datetime(text):
     dt = dateparser.parse(text, settings={"TIMEZONE": "Asia/Kolkata", "RETURN_AS_TIMEZONE_AWARE": True})
     return dt.isoformat() if dt else None
+    def find_free_slots(day: str, duration_minutes: int = 60) -> str:
+    from datetime import timedelta
+
+    # Parse day start and end
+    start_dt = dateparser.parse(f"{day} 00:00", settings={"TIMEZONE": "Asia/Kolkata", "RETURN_AS_TIMEZONE_AWARE": True})
+    end_dt = start_dt + timedelta(hours=23, minutes=59)
+
+    events = service.events().list(
+        calendarId=CALENDAR_ID,
+        timeMin=start_dt.isoformat(),
+        timeMax=end_dt.isoformat(),
+        singleEvents=True,
+        orderBy="startTime"
+    ).execute().get("items", [])
+
+    # Create timeline
+    busy_times = [(dateparser.parse(e["start"]["dateTime"]), dateparser.parse(e["end"]["dateTime"])) for e in events]
+
+    # Sort
+    busy_times.sort()
+
+    # Walk through the day and find gaps
+    current = start_dt
+    free_slots = []
+
+    for start, end in busy_times:
+        if (start - current).total_seconds() >= duration_minutes * 60:
+            free_slots.append(f"{current.strftime('%I:%M %p')} to {start.strftime('%I:%M %p')}")
+        current = max(current, end)
+
+    if (end_dt - current).total_seconds() >= duration_minutes * 60:
+        free_slots.append(f"{current.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}")
+
+    return (
+        "\n".join(free_slots)
+        if free_slots
+        else f"❌ No free {duration_minutes}-minute slots found on {day}."
+    )
+
 
 def check_availability_natural(time_range: str) -> str:
     times = time_range.lower().split("to")
