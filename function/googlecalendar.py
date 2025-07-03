@@ -27,13 +27,13 @@ def parse_datetime(text):
 def check_availability_natural(time_range: str) -> str:
     times = time_range.lower().split("to")
     if len(times) != 2:
-        return "❌ Please provide a time range like '3 PM to 4 PM today'."
+        return " Please provide a time range like '3 PM to 4 PM today'."
 
     start_time = parse_datetime(times[0].strip())
     end_time = parse_datetime(times[1].strip())
 
     if not start_time or not end_time:
-        return f"❌ Could not parse the time range: '{time_range}'."
+        return f" Could not parse the time range: '{time_range}'."
 
     events = service.events().list(
         calendarId=CALENDAR_ID,
@@ -43,21 +43,21 @@ def check_availability_natural(time_range: str) -> str:
         orderBy="startTime"
     ).execute().get("items", [])
 
-    return "✅ You are free during that time." if not events else "❌ You have events during that time."
+    return " You are free during that time." if not events else " You have events during that time."
 
 def book_event_natural(time_text: str) -> str:
     times = time_text.lower().split("to")
     if len(times) != 2:
-        return "❌ Format error: Use 'from X to Y' format like '3 PM to 4 PM today'."
+        return " Format error: Use 'from X to Y' format like '3 PM to 4 PM today'."
 
     start_time = parse_datetime(times[0].strip())
     end_time = parse_datetime(times[1].strip())
 
     if not start_time or not end_time:
-        return f"❌ Could not parse the time range: '{time_text}'. Try a format like '2 PM to 3 PM today'."
+        return f" Could not parse the time range: '{time_text}'. Try a format like '2 PM to 3 PM today'."
 
     if start_time >= end_time:
-        return "❌ Invalid time range: start time must be before end time."
+        return " Invalid time range: start time must be before end time."
 
     body = {
         "summary": "Meeting",
@@ -67,7 +67,7 @@ def book_event_natural(time_text: str) -> str:
 
     try:
         service.events().insert(calendarId=CALENDAR_ID, body=body).execute()
-        return f"✅ Meeting booked from {times[0].strip()} to {times[1].strip()}."
+        return f" Meeting booked from {times[0].strip()} to {times[1].strip()}."
     except Exception as e:
         return f"❌ Failed to book meeting: {e}"
 
@@ -87,7 +87,7 @@ def check_schedule_day(day_text: str) -> str:
     ).execute().get("items", [])
 
     if not events:
-        return f"📅 No events scheduled for {day_text}."
+        return f" No events scheduled for {day_text}."
 
     return "\n".join([
         f"{e['summary']} from {e['start']['dateTime']} to {e['end']['dateTime']}"
@@ -99,7 +99,7 @@ def find_free_slots(day: str, duration_minutes: int = 60) -> str:
     end_dt = parse_datetime(f"{day} 23:59")
 
     if not start_dt or not end_dt:
-        return "❌ Could not parse the day input."
+        return " Could not parse the day input."
 
     events = service.events().list(
         calendarId=CALENDAR_ID,
@@ -125,4 +125,4 @@ def find_free_slots(day: str, duration_minutes: int = 60) -> str:
     if (end_dt - current).total_seconds() >= duration_minutes * 60:
         free_slots.append(f"{current.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}")
 
-    return "\n".join(free_slots) if free_slots else f"❌ No free {duration_minutes}-minute slots found on {day}."
+    return "\n".join(free_slots) if free_slots else f" No free {duration_minutes}-minute slots found on {day}."
