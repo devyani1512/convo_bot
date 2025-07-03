@@ -1,5 +1,5 @@
 from langchain.agents import Tool, initialize_agent
-from langchain_community.chat_models import ChatOpenAI  # Use updated import
+from langchain_community.chat_models import ChatOpenAI  
 
 from function.googlecalendar import (
     check_availability_natural,
@@ -8,7 +8,7 @@ from function.googlecalendar import (
     find_free_slots,
 )
 
-# Define tools clearly
+
 tools = [
     Tool.from_function(
         func=check_availability_natural,
@@ -38,18 +38,18 @@ tools = [
     ),
 ]
 
-# Set up the LLM
+
 llm = ChatOpenAI(
-    model="gpt-3.5-turbo",  # or "gpt-4" if available
+    model="gpt-3.5-turbo",  
     temperature=0,
     max_tokens=1000
 )
 
-# Initialize the agent
+
 agent = initialize_agent(
     tools=tools,
     llm=llm,
-    agent_type="openai-functions",  # essential for structured tool calls
+    agent_type="openai-functions",  
     verbose=True,
     handle_parsing_errors=True,
 )
