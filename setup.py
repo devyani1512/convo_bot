@@ -1,43 +1,55 @@
-from langchain.agents import Tool
-from langchain.agents import initialize_agent
-from langchain.chat_models import ChatOpenAI
+from langchain.agents import Tool, initialize_agent
+from langchain_community.chat_models import ChatOpenAI  # Use updated import
 
 from function.googlecalendar import (
     check_availability_natural,
     book_event_natural,
     check_schedule_day,
-    find_free_slots
+    find_free_slots,
 )
 
+# Define tools clearly
 tools = [
     Tool.from_function(
         func=check_availability_natural,
         name="CheckAvailability",
-        description="Checks if you're free during a time range like '3 PM to 4 PM today'."
+        description=(
+            "Use this tool to check if the calendar is free during a specific time range, "
+            "such as '3 PM to 4 PM today', '1 PM to 2 PM tomorrow', etc."
+        )
     ),
     Tool.from_function(
         func=book_event_natural,
         name="BookEvent",
-        description="Books a meeting using a time range like '3 PM to 4 PM today'."
+        description=(
+            "Use this to book a meeting using a natural time range like "
+            "'10 AM to 11 AM on Friday', '1 PM to 2 PM today', etc."
+        )
     ),
     Tool.from_function(
         func=check_schedule_day,
         name="CheckSchedule",
-        description="Checks your schedule on a day like 'today', 'tomorrow', or 'Saturday'."
+        description="Use this to view calendar events on a given day like 'today', 'tomorrow', or 'Monday'."
     ),
     Tool.from_function(
         func=find_free_slots,
         name="FindFreeSlots",
-        description="Finds free time slots on a given day like 'Saturday'."
+        description="Use this to find available time slots on a specific day like 'Saturday' or 'next Tuesday'."
     ),
 ]
 
-llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
+# Set up the LLM
+llm = ChatOpenAI(
+    model="gpt-3.5-turbo",  # or "gpt-4" if available
+    temperature=0,
+    max_tokens=1000
+)
 
+# Initialize the agent
 agent = initialize_agent(
     tools=tools,
     llm=llm,
-    agent_type="openai-functions",
+    agent_type="openai-functions",  # essential for structured tool calls
     verbose=True,
     handle_parsing_errors=True,
 )
