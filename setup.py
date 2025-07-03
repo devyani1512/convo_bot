@@ -25,6 +25,11 @@ tools = [
         func=check_schedule_day,
         description="Check your schedule for a specific day. Example: 'today', 'tomorrow', 'Saturday'."
     ),
+    Tool(
+    name="FindFreeSlots",
+    func=find_free_slots,
+    description="Find free time slots on a day. Example: 'Saturday', 'tomorrow', 'next Monday'. Returns available windows."
+)
 ]
 
 agent = initialize_agent(tools, llm, agent_type="openai-functions", handle_parsing_errors=True)
