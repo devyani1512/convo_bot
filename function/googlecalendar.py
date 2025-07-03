@@ -13,7 +13,7 @@ if not creds_json:
 info = json.loads(creds_json)
 credentials = service_account.Credentials.from_service_account_info(info)
 service = build("calendar", "v3", credentials=credentials)
-CALENDAR_ID = "primary"
+CALENDAR_ID = "devyanisharmaa15@gmail.com"
 
 
 def book_event(summary, start_time, end_time):
