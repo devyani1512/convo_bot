@@ -14,9 +14,9 @@ CALENDAR_ID = "primary"  # or your actual calendar ID if needed
 def parse_datetime(text):
     dt = dateparser.parse(text, settings={"TIMEZONE": "Asia/Kolkata", "RETURN_AS_TIMEZONE_AWARE": True})
     return dt.isoformat() if dt else None
-    def find_free_slots(day: str, duration_minutes: int = 60) -> str:
-    from datetime import timedelta
 
+    
+    def find_free_slots(day: str, duration_minutes: int = 60) -> str:
     # Parse day start and end
     start_dt = dateparser.parse(f"{day} 00:00", settings={"TIMEZONE": "Asia/Kolkata", "RETURN_AS_TIMEZONE_AWARE": True})
     end_dt = start_dt + timedelta(hours=23, minutes=59)
