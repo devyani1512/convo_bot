@@ -11,7 +11,7 @@ credentials = service_account.Credentials.from_service_account_info(
     info, scopes=["https://www.googleapis.com/auth/calendar"]
 )
 service = build("calendar", "v3", credentials=credentials)
-CALENDAR_ID = "primary"  
+CALENDAR_ID = "devyanisharmaa15@gmail.com"  
 
 def parse_datetime(text):
     try:
