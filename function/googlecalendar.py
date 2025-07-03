@@ -9,15 +9,13 @@ creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
 info = json.loads(creds_json)
 credentials = service_account.Credentials.from_service_account_info(info, scopes=["https://www.googleapis.com/auth/calendar"])
 service = build("calendar", "v3", credentials=credentials)
-CALENDAR_ID = "primary"  # or your actual calendar ID if needed
+CALENDAR_ID = "primary"  # or your actual calendar ID
 
 def parse_datetime(text):
     dt = dateparser.parse(text, settings={"TIMEZONE": "Asia/Kolkata", "RETURN_AS_TIMEZONE_AWARE": True})
     return dt.isoformat() if dt else None
 
-    
-    def find_free_slots(day: str, duration_minutes: int = 60) -> str:
-    # Parse day start and end
+def find_free_slots(day: str, duration_minutes: int = 60) -> str:
     start_dt = dateparser.parse(f"{day} 00:00", settings={"TIMEZONE": "Asia/Kolkata", "RETURN_AS_TIMEZONE_AWARE": True})
     end_dt = start_dt + timedelta(hours=23, minutes=59)
 
@@ -29,13 +27,9 @@ def parse_datetime(text):
         orderBy="startTime"
     ).execute().get("items", [])
 
-    # Create timeline
     busy_times = [(dateparser.parse(e["start"]["dateTime"]), dateparser.parse(e["end"]["dateTime"])) for e in events]
-
-    # Sort
     busy_times.sort()
 
-    # Walk through the day and find gaps
     current = start_dt
     free_slots = []
 
@@ -47,12 +41,7 @@ def parse_datetime(text):
     if (end_dt - current).total_seconds() >= duration_minutes * 60:
         free_slots.append(f"{current.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}")
 
-    return (
-        "\n".join(free_slots)
-        if free_slots
-        else f"❌ No free {duration_minutes}-minute slots found on {day}."
-    )
-
+    return "\n".join(free_slots) if free_slots else f"❌ No free {duration_minutes}-minute slots found on {day}."
 
 def check_availability_natural(time_range: str) -> str:
     times = time_range.lower().split("to")
