@@ -1,4 +1,13 @@
 from langchain.agents import Tool
+from langchain.agents import initialize_agent
+from langchain.chat_models import ChatOpenAI
+
+from function.googlecalendar import (
+    check_availability_natural,
+    book_event_natural,
+    check_schedule_day,
+    find_free_slots
+)
 
 tools = [
     Tool.from_function(
@@ -14,13 +23,21 @@ tools = [
     Tool.from_function(
         func=check_schedule_day,
         name="CheckSchedule",
-        description="Checks what is scheduled on a day like 'today', 'tomorrow', or 'Saturday'."
+        description="Checks your schedule on a day like 'today', 'tomorrow', or 'Saturday'."
     ),
     Tool.from_function(
         func=find_free_slots,
         name="FindFreeSlots",
-        description="Finds free slots on a day. Input example: 'Saturday', 'tomorrow'."
+        description="Finds free time slots on a given day like 'Saturday'."
     ),
 ]
 
+llm = ChatOpenAI(temperature=0, model="gpt-4")
 
+agent = initialize_agent(
+    tools=tools,
+    llm=llm,
+    agent_type="openai-functions",
+    verbose=True,
+    handle_parsing_errors=True,
+)
