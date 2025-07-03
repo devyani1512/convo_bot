@@ -1,39 +1,31 @@
+from langchain_community.chat_models import ChatOpenAI
+from langchain.agents import initialize_agent, Tool
+from function.googlecalendar import check_availability_natural, book_event_natural, check_schedule_day
 from dotenv import load_dotenv
 import os
 
-from langchain_community.chat_models import ChatOpenAI
-from langchain.agents import initialize_agent, Tool
-
-from function.googlecalendar import check_availability, book_event, book_event_natural
-
-# Load .env variables
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
-# LLM setup
 llm = ChatOpenAI(temperature=0, openai_api_key=openai_api_key)
 
-# Define tools
 tools = [
     Tool(
         name="CheckAvailability",
-        func=lambda x: str(check_availability()),
-        description="Use this to check the next available time slots."
-    ),
-    Tool(
-        name="BookEvent",
-        func=lambda x: book_event("Meeting", *x.split(",")) if len(x.split(",")) == 2 else "❌ Error: Please provide start and end times separated by a comma.",
-        description="Use this to book a meeting. Input format: start_time,end_time (ISO 8601 format)."
+        func=check_availability_natural,
+        description="Check if you are free at a given time range like '3 PM to 4 PM today'."
     ),
     Tool(
         name="BookMeetingNatural",
-        func=lambda x: book_event_natural(x),
-        description="Use this to book a meeting using natural language. Example: 'tomorrow from 4 PM to 5 PM'"
-    )
+        func=book_event_natural,
+        description="Book a meeting. Example: 'today from 3 PM to 4 PM', 'tomorrow 10 AM to 11 AM'."
+    ),
+    Tool(
+        name="DaySchedule",
+        func=check_schedule_day,
+        description="Check your schedule for a specific day. Example: 'today', 'tomorrow', 'Saturday'."
+    ),
 ]
 
-# Initialize agent
-agent = initialize_agent(tools, llm, agent_type="openai-functions")
-
-
+agent = initialize_agent(tools, llm, agent_type="openai-functions", handle_parsing_errors=True)
 
