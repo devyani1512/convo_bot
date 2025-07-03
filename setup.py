@@ -1,36 +1,26 @@
-from langchain_community.chat_models import ChatOpenAI
-from langchain.agents import initialize_agent, Tool
-from function.googlecalendar import check_availability_natural, book_event_natural, check_schedule_day
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-openai_api_key = os.getenv("OPENAI_API_KEY")
-
-llm = ChatOpenAI(temperature=0, openai_api_key=openai_api_key)
+from langchain.agents import Tool
 
 tools = [
-    Tool(
-        name="CheckAvailability",
+    Tool.from_function(
         func=check_availability_natural,
-        description="Check if you are free at a given time range like '3 PM to 4 PM today'."
+        name="CheckAvailability",
+        description="Checks if you're free during a time range like '3 PM to 4 PM today'."
     ),
-    Tool(
-        name="BookMeetingNatural",
+    Tool.from_function(
         func=book_event_natural,
-        description="Book a meeting. Example: 'today from 3 PM to 4 PM', 'tomorrow 10 AM to 11 AM'."
+        name="BookEvent",
+        description="Books a meeting using a time range like '3 PM to 4 PM today'."
     ),
-    Tool(
-        name="DaySchedule",
+    Tool.from_function(
         func=check_schedule_day,
-        description="Check your schedule for a specific day. Example: 'today', 'tomorrow', 'Saturday'."
+        name="CheckSchedule",
+        description="Checks what is scheduled on a day like 'today', 'tomorrow', or 'Saturday'."
     ),
-    Tool(
-    name="FindFreeSlots",
-    func=find_free_slots,
-    description="Find free time slots on a day. Example: 'Saturday', 'tomorrow', 'next Monday'. Returns available windows."
-)
+    Tool.from_function(
+        func=find_free_slots,
+        name="FindFreeSlots",
+        description="Finds free slots on a day. Input example: 'Saturday', 'tomorrow'."
+    ),
 ]
 
-agent = initialize_agent(tools, llm, agent_type="openai-functions", handle_parsing_errors=True)
 
