@@ -1,66 +1,76 @@
-import dateparser
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from datetime import datetime
-import os
-import json
+import json, os
+from datetime import datetime, timedelta
+import pytz
+import dateparser
 
-# Load credentials securely from environment variable
 creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
-if not creds_json:
-    raise ValueError("❌ GOOGLE_CREDENTIALS_JSON environment variable not set!")
-
 info = json.loads(creds_json)
-credentials = service_account.Credentials.from_service_account_info(info)
+credentials = service_account.Credentials.from_service_account_info(info, scopes=["https://www.googleapis.com/auth/calendar"])
 service = build("calendar", "v3", credentials=credentials)
-CALENDAR_ID = "devyanisharmaa15@gmail.com"
+CALENDAR_ID = "primary"  # or your actual calendar ID if needed
 
+def parse_datetime(text):
+    dt = dateparser.parse(text, settings={"TIMEZONE": "Asia/Kolkata", "RETURN_AS_TIMEZONE_AWARE": True})
+    return dt.isoformat() if dt else None
 
-def book_event(summary, start_time, end_time):
-    try:
-        event = {
-            "summary": summary,
-            "start": {
-                "dateTime": start_time,
-                "timeZone": "Asia/Kolkata",
-            },
-            "end": {
-                "dateTime": end_time,
-                "timeZone": "Asia/Kolkata",
-            },
-        }
-        event = service.events().insert(calendarId=CALENDAR_ID, body=event).execute()
-        return f"✅ Event '{summary}' booked from {start_time} to {end_time}."
-    except Exception as e:
-        return f"❌ Booking failed: {str(e)}"
+def check_availability_natural(time_range: str) -> str:
+    times = time_range.lower().split("to")
+    if len(times) != 2:
+        return "❌ Please provide a time range like '3 PM to 4 PM today'."
+    start_time = parse_datetime(times[0].strip())
+    end_time = parse_datetime(times[1].strip())
+    if not start_time or not end_time:
+        return "❌ Unable to parse the times. Please try again."
 
+    events = service.events().list(
+        calendarId=CALENDAR_ID,
+        timeMin=start_time,
+        timeMax=end_time,
+        singleEvents=True,
+        orderBy="startTime"
+    ).execute().get("items", [])
 
-def book_event_natural(text):
-    try:
-        parts = text.lower().split(" to ")
-        if len(parts) != 2:
-            return "❌ Please provide time in format like: 4 PM to 5 PM today"
-        start = dateparser.parse(parts[0])
-        end = dateparser.parse(parts[1])
-        if not start or not end:
-            return "❌ Could not parse the start or end time."
-        return book_event("Meeting", start.isoformat(), end.isoformat())
-    except Exception as e:
-        return f"❌ Error parsing times: {str(e)}"
+    return "✅ You are free during that time." if not events else "❌ You have events during that time."
 
+def check_schedule_day(day_text: str) -> str:
+    day_start = dateparser.parse(f"{day_text} 00:00", settings={"TIMEZONE": "Asia/Kolkata", "RETURN_AS_TIMEZONE_AWARE": True})
+    day_end = dateparser.parse(f"{day_text} 23:59", settings={"TIMEZONE": "Asia/Kolkata", "RETURN_AS_TIMEZONE_AWARE": True})
 
-def check_availability():
-    try:
-        now = datetime.utcnow().isoformat() + 'Z'
-        events = service.events().list(
-            calendarId=CALENDAR_ID,
-            timeMin=now,
-            maxResults=5,
-            singleEvents=True,
-            orderBy="startTime"
-        ).execute()
-        times = [event["start"]["dateTime"] for event in events.get("items", [])]
-        return times or ["✅ No events found"]
-    except Exception as e:
-        return f"❌ Error checking availability: {str(e)}"
+    if not day_start or not day_end:
+        return "❌ Couldn't understand the day you're referring to."
+
+    events = service.events().list(
+        calendarId=CALENDAR_ID,
+        timeMin=day_start.isoformat(),
+        timeMax=day_end.isoformat(),
+        singleEvents=True,
+        orderBy="startTime"
+    ).execute().get("items", [])
+
+    if not events:
+        return f"📅 No events scheduled for {day_text}."
+    return "\n".join([f"{e['summary']} from {e['start']['dateTime']} to {e['end']['dateTime']}" for e in events])
+
+def book_event_natural(time_text: str) -> str:
+    times = time_text.lower().split("to")
+    if len(times) != 2:
+        return "❌ Format error: Use 'from X to Y' format."
+
+    start_time = parse_datetime(times[0].strip())
+    end_time = parse_datetime(times[1].strip())
+
+    if not start_time or not end_time:
+        return "❌ Could not parse the time input."
+
+    body = {
+        "summary": "Meeting",
+        "start": {"dateTime": start_time, "timeZone": "Asia/Kolkata"},
+        "end": {"dateTime": end_time, "timeZone": "Asia/Kolkata"},
+    }
+
+    service.events().insert(calendarId=CALENDAR_ID, body=body).execute()
+    return f"✅ Meeting booked from {times[0].strip()} to {times[1].strip()}."
+
 
