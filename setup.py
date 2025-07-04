@@ -1,3 +1,4 @@
+# setup.py
 from langchain.agents import Tool, initialize_agent
 from langchain.chat_models import ChatOpenAI
 from function.googlecalendar import (
@@ -7,6 +8,7 @@ from function.googlecalendar import (
     find_free_slots
 )
 
+# Define tools that Langchain agent will use
 tools = [
     Tool.from_function(
         func=check_availability_natural,
@@ -30,12 +32,15 @@ tools = [
     ),
 ]
 
+# Use gpt-3.5-turbo or fallback to gpt-4 if needed
 llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
 
+# Initialize the agent
 agent = initialize_agent(
     tools=tools,
     llm=llm,
     agent_type="openai-functions",
     verbose=True,
-    handle_parsing_errors=True
+    handle_parsing_errors=True,
 )
+
