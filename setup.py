@@ -1,46 +1,42 @@
-# setup.py
 from langchain.agents import Tool, initialize_agent
 from langchain.chat_models import ChatOpenAI
 from function.googlecalendar import (
     check_availability_natural,
     book_event_natural,
     check_schedule_day,
-    find_free_slots
+    find_free_slots,
 )
 
-# Define tools that Langchain agent will use
 tools = [
     Tool.from_function(
         func=check_availability_natural,
         name="CheckAvailability",
-        description="Checks if you're free during a time range like '3 PM to 4 PM today'."
+        description="Checks if you're free during a time range like '3 PM to 4 PM on 9th July' or 'tomorrow from 2 to 3 PM'."
     ),
     Tool.from_function(
         func=book_event_natural,
         name="BookEvent",
-        description="Books a meeting using a time range like '3 PM to 4 PM today'."
+        description="Books a meeting using a time range like '9th July from 3 PM to 4 PM'."
     ),
     Tool.from_function(
         func=check_schedule_day,
         name="CheckSchedule",
-        description="Checks your schedule on a day like 'today', 'tomorrow', or 'Saturday'."
+        description="Checks your schedule on a specific day like 'today', 'tomorrow', or a date like '9th July'."
     ),
     Tool.from_function(
         func=find_free_slots,
         name="FindFreeSlots",
-        description="Finds free time slots on a given day like 'Saturday'."
+        description="Finds available time slots on a specific day like '9th July' or 'Monday'."
     ),
 ]
 
-# Use gpt-3.5-turbo or fallback to gpt-4 if needed
 llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
 
-# Initialize the agent
 agent = initialize_agent(
     tools=tools,
     llm=llm,
     agent_type="openai-functions",
     verbose=True,
-    handle_parsing_errors=True,
+    handle_parsing_errors=True
 )
 
