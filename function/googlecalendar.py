@@ -1,3 +1,4 @@
+# googlecalendar.py
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import json, os
@@ -19,13 +20,15 @@ def parse_datetime(text):
             text,
             settings={"TIMEZONE": "Asia/Kolkata", "RETURN_AS_TIMEZONE_AWARE": True}
         )
-        return dt if dt else None
+        if not dt:
+            raise ValueError(f"Unable to parse: '{text}'")
+        return dt
     except Exception as e:
         print(f"[DateParse Error] {text} → {e}")
         return None
 
 def check_availability_natural(time_range: str) -> str:
-    times = time_range.lower().split("to")
+    times = time_range.lower().replace("from", "").split("to")
     if len(times) != 2:
         return " Please provide a time range like '3 PM to 4 PM today'."
 
@@ -46,18 +49,23 @@ def check_availability_natural(time_range: str) -> str:
     return " You are free during that time." if not events else " You have events during that time."
 
 def book_event_natural(time_text: str) -> str:
+    if "from" in time_text and "to" in time_text:
+        time_text = time_text.replace("from", "").strip()
+    elif "to" not in time_text:
+        return "❌ I couldn't understand the time format. Try saying '10 AM to 11 AM today'."
+
     times = time_text.lower().split("to")
     if len(times) != 2:
-        return " Format error: Use 'from X to Y' format like '3 PM to 4 PM today'."
+        return "❌ Format error. Use: 'from 10 AM to 11 AM tomorrow'."
 
     start_time = parse_datetime(times[0].strip())
     end_time = parse_datetime(times[1].strip())
 
     if not start_time or not end_time:
-        return f" Could not parse the time range: '{time_text}'. Try a format like '2 PM to 3 PM today'."
+        return f"❌ Could not parse time range: '{time_text}'. Try '3 PM to 4 PM today'."
 
     if start_time >= end_time:
-        return " Invalid time range: start time must be before end time."
+        return "❌ Start time must be before end time."
 
     body = {
         "summary": "Meeting",
@@ -65,9 +73,11 @@ def book_event_natural(time_text: str) -> str:
         "end": {"dateTime": end_time.isoformat(), "timeZone": "Asia/Kolkata"},
     }
 
+    print(f"📅 Inserting event: {body}")
+
     try:
         service.events().insert(calendarId=CALENDAR_ID, body=body).execute()
-        return f" Meeting booked from {times[0].strip()} to {times[1].strip()}."
+        return f"✅ Meeting booked from {start_time.strftime('%I:%M %p')} to {end_time.strftime('%I:%M %p')}."
     except Exception as e:
         return f"❌ Failed to book meeting: {e}"
 
@@ -126,3 +136,4 @@ def find_free_slots(day: str, duration_minutes: int = 60) -> str:
         free_slots.append(f"{current.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}")
 
     return "\n".join(free_slots) if free_slots else f" No free {duration_minutes}-minute slots found on {day}."
+
