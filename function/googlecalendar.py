@@ -72,26 +72,49 @@ def parse_input_naturally(text: str):
     return None, None
 
 # ✅ Book an event from natural input
-def book_event_natural(text: str) -> str:
-    start_dt, end_dt = parse_input_naturally(text)
-
-    if not start_dt or not end_dt:
-        return "❌ Couldn't understand your time/date. Try: 'Book a meeting on Friday from 3 PM to 4 PM'."
-
-    if start_dt >= end_dt:
-        return "❌ Invalid time range. Start must be before end."
-
-    body = {
-        "summary": "Meeting",
-        "start": {"dateTime": start_dt.isoformat(), "timeZone": "Asia/Kolkata"},
-        "end": {"dateTime": end_dt.isoformat(), "timeZone": "Asia/Kolkata"},
-    }
-
+def book_event_natural(time_text: str) -> str:
     try:
+        if "to" not in time_text:
+            return "⚠️ Format error: Please use 'from X to Y' format like '3 PM to 4 PM on 9th July'."
+
+        parts = time_text.lower().split("to")
+        start_raw = parts[0].strip()
+        end_raw = parts[1].strip()
+
+        # Use dateparser to extract datetime values
+        start_time = parse_datetime(start_raw)
+        end_time = parse_datetime(end_raw)
+
+        # If only one has the date, apply to both
+        if not start_time or not end_time:
+            # Try to extract date from one side
+            for phrase in ["on", "at"]:
+                if phrase in start_raw:
+                    base_date = start_raw.split(phrase)[-1].strip()
+                    if not end_time:
+                        end_time = parse_datetime(f"{end_raw} {base_date}")
+                    if not start_time:
+                        start_time = parse_datetime(f"{start_raw}")
+                    break
+
+        if not start_time or not end_time:
+            return f"❌ Couldn't understand your time/date. Try: 'Book a meeting on 9th July from 3 PM to 4 PM'."
+
+        if start_time >= end_time:
+            return "⚠️ Invalid range: Start time must be before end time."
+
+        body = {
+            "summary": "Meeting",
+            "start": {"dateTime": start_time.isoformat(), "timeZone": "Asia/Kolkata"},
+            "end": {"dateTime": end_time.isoformat(), "timeZone": "Asia/Kolkata"},
+        }
+
         service.events().insert(calendarId=CALENDAR_ID, body=body).execute()
-        return f"✅ Meeting booked on {start_dt.strftime('%A, %d %B')} from {start_dt.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}."
+        return f"✅ Meeting booked from {start_time.strftime('%I:%M %p, %d %b')} to {end_time.strftime('%I:%M %p, %d %b')}."
+
     except Exception as e:
-        return f"❌ Failed to book meeting: {e}"
+        return f"❌ Booking failed due to error: {str(e)}"
+
 
 # ✅ Check availability in a natural time range
 def check_availability_natural(time_range: str) -> str:
