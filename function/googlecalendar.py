@@ -4,8 +4,8 @@ import json, os
 from datetime import datetime, timedelta
 import pytz
 import dateparser
+from dateparser.search import search_dates
 
-# Load credentials
 creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
 info = json.loads(creds_json)
 credentials = service_account.Credentials.from_service_account_info(
@@ -20,18 +20,22 @@ def parse_datetime(text):
             text,
             settings={"TIMEZONE": "Asia/Kolkata", "RETURN_AS_TIMEZONE_AWARE": True}
         )
-        return dt
+        return dt if dt else None
     except Exception as e:
         print(f"[DateParse Error] {text} → {e}")
         return None
 
 def check_availability_natural(time_range: str) -> str:
-    times = time_range.lower().split("to")
-    if len(times) != 2:
+    results = search_dates(
+        time_range,
+        settings={"TIMEZONE": "Asia/Kolkata", "RETURN_AS_TIMEZONE_AWARE": True}
+    )
+
+    if not results or len(results) < 2:
         return "❌ Please provide a time range like '3 PM to 4 PM today'."
 
-    start_time = parse_datetime(times[0].strip())
-    end_time = parse_datetime(times[1].strip())
+    start_time = results[0][1]
+    end_time = results[1][1]
 
     if not start_time or not end_time:
         return f"❌ Could not parse the time range: '{time_range}'."
@@ -47,28 +51,30 @@ def check_availability_natural(time_range: str) -> str:
     return "✅ You are free during that time." if not events else "❌ You have events during that time."
 
 def book_event_natural(time_text: str) -> str:
-    times = time_text.lower().split("to")
-    if len(times) != 2:
-        return "❌ Format error: Use 'from X to Y' format like '3 PM to 4 PM today'."
-
-    start_time = parse_datetime(times[0].strip())
-    end_time = parse_datetime(times[1].strip())
-
-    if not start_time or not end_time:
-        return f"❌ Could not parse the time range: '{time_text}'. Try a format like '2 PM to 3 PM today'."
-
-    if start_time >= end_time:
-        return "❌ Invalid time range: start time must be before end time."
-
-    body = {
-        "summary": "Meeting",
-        "start": {"dateTime": start_time.isoformat(), "timeZone": "Asia/Kolkata"},
-        "end": {"dateTime": end_time.isoformat(), "timeZone": "Asia/Kolkata"},
-    }
-
     try:
+        results = search_dates(
+            time_text,
+            settings={"TIMEZONE": "Asia/Kolkata", "RETURN_AS_TIMEZONE_AWARE": True}
+        )
+
+        if not results or len(results) < 2:
+            return "❌ Could not find two valid date/time expressions in your input."
+
+        start_time = results[0][1]
+        end_time = results[1][1]
+
+        if start_time >= end_time:
+            return "❌ Invalid time range: Start time must be before end time."
+
+        body = {
+            "summary": "Meeting",
+            "start": {"dateTime": start_time.isoformat(), "timeZone": "Asia/Kolkata"},
+            "end": {"dateTime": end_time.isoformat(), "timeZone": "Asia/Kolkata"},
+        }
+
         service.events().insert(calendarId=CALENDAR_ID, body=body).execute()
-        return f"✅ Meeting booked from {times[0].strip()} to {times[1].strip()}."
+        return f"📅 Meeting booked from {start_time.strftime('%I:%M %p %d %b')} to {end_time.strftime('%I:%M %p %d %b')}."
+
     except Exception as e:
         return f"❌ Failed to book meeting: {e}"
 
@@ -91,7 +97,7 @@ def check_schedule_day(day_text: str) -> str:
         return f"📅 No events scheduled for {day_text}."
 
     return "\n".join([
-        f"📌 {e['summary']} from {e['start']['dateTime']} to {e['end']['dateTime']}"
+        f"🗓️ {e['summary']} from {e['start']['dateTime']} to {e['end']['dateTime']}"
         for e in events
     ])
 
@@ -120,10 +126,10 @@ def find_free_slots(day: str, duration_minutes: int = 60) -> str:
         if not start or not end:
             continue
         if (start - current).total_seconds() >= duration_minutes * 60:
-            free_slots.append(f"🕒 {current.strftime('%I:%M %p')} to {start.strftime('%I:%M %p')}")
+            free_slots.append(f"{current.strftime('%I:%M %p')} to {start.strftime('%I:%M %p')}")
         current = max(current, end)
 
     if (end_dt - current).total_seconds() >= duration_minutes * 60:
-        free_slots.append(f"🕒 {current.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}")
+        free_slots.append(f"{current.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}")
 
     return "\n".join(free_slots) if free_slots else f"❌ No free {duration_minutes}-minute slots found on {day}."
