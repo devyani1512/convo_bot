@@ -1,68 +1,46 @@
-from langchain.agents import Tool, initialize_agent
+from langchain.agents import tool
+from langchain.agents.openai_functions_agent.agent_token_buffer_memory import AgentTokenBufferMemory
+from langchain.agents import create_openai_functions_agent
+from langchain.tools import Tool
+from langchain.agents.agent import AgentExecutor
 from langchain.chat_models import ChatOpenAI
-from langchain.tools import tool
-from pydantic import BaseModel, Field
 
 from function.googlecalendar import (
-    book_event,
-    check_availability,
-    check_schedule,
-    find_free_slots
+    book_event, BookEventInput,
+    check_availability, CheckAvailabilityInput,
+    check_schedule, CheckScheduleInput,
+    find_free_slots, FindFreeSlotsInput
 )
 
-# --- Define argument schemas ---
-class BookEventArgs(BaseModel):
-    date: str = Field(..., description="Date of the meeting (e.g. 'tomorrow' or '9th July')")
-    start_time: str = Field(..., description="Start time (e.g. '3 PM')")
-    end_time: str = Field(..., description="End time (e.g. '4 PM')")
-
-class CheckAvailabilityArgs(BaseModel):
-    date: str
-    start_time: str
-    end_time: str
-
-class CheckScheduleArgs(BaseModel):
-    date: str
-
-class FreeSlotsArgs(BaseModel):
-    date: str
-    duration_minutes: int = 60
-
-# --- Tools ---
 tools = [
     Tool.from_function(
         func=book_event,
         name="BookEvent",
-        description="Book a meeting on a given date and time.",
-        args_schema=BookEventArgs
+        description="Book a meeting on a given day and time",
+        args_schema=BookEventInput
     ),
     Tool.from_function(
         func=check_availability,
         name="CheckAvailability",
-        description="Check if you're free on a given date and time.",
-        args_schema=CheckAvailabilityArgs
+        description="Check if you are free at a certain time on a certain day",
+        args_schema=CheckAvailabilityInput
     ),
     Tool.from_function(
         func=check_schedule,
         name="CheckSchedule",
-        description="Get your schedule for a given day.",
-        args_schema=CheckScheduleArgs
+        description="See all events scheduled on a given day",
+        args_schema=CheckScheduleInput
     ),
     Tool.from_function(
         func=find_free_slots,
         name="FindFreeSlots",
-        description="Find free slots on a given day.",
-        args_schema=FreeSlotsArgs
-    ),
+        description="Find free time slots on a given day",
+        args_schema=FindFreeSlotsInput
+    )
 ]
 
-llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
+llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 
-agent = initialize_agent(
-    tools=tools,
-    llm=llm,
-    agent_type="openai-functions",
-    verbose=True,
-    handle_parsing_errors=True
-)
+agent = create_openai_functions_agent(llm=llm, tools=tools)
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
