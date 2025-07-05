@@ -1,32 +1,28 @@
 from langchain.agents import Tool, initialize_agent
 from langchain.chat_models import ChatOpenAI
-from function.googlecalendar import (
-    check_availability,
-    book_event,
-    check_schedule,
-    find_free_slots
-)
+from function.googlecalendar import book_event, check_availability, check_schedule, find_free_slots
 
+# Define tools using explicit function calling (date, start_time, end_time, summary)
 tools = [
     Tool.from_function(
-        func=check_availability,
+        func=lambda date, start_time, end_time: check_availability(date, start_time, end_time),
         name="CheckAvailability",
-        description="Check if you're free on a certain date and time. Inputs: date (e.g. 'Monday'), start_time (e.g. '2 PM'), end_time (e.g. '3 PM')."
+        description="Checks if you're free during a time range like: date='Monday', start_time='3 PM', end_time='4 PM'."
     ),
     Tool.from_function(
-        func=book_event,
+        func=lambda date, start_time, end_time, summary="Meeting": book_event(date, start_time, end_time, summary),
         name="BookEvent",
-        description="Book a calendar event. Inputs: date (e.g. '9th July'), start_time (e.g. '3 PM'), end_time (e.g. '4 PM')."
+        description="Books a meeting with a date, start_time, and end_time. For example: date='Friday', start_time='2 PM', end_time='3 PM'."
     ),
     Tool.from_function(
-        func=check_schedule,
+        func=lambda date: check_schedule(date),
         name="CheckSchedule",
-        description="Check your schedule for a given day. Input: date (e.g. 'today', 'tomorrow', 'Saturday')."
+        description="Checks your schedule on a specific date like 'today', 'tomorrow', '9th July', or 'Wednesday'."
     ),
     Tool.from_function(
-        func=find_free_slots,
+        func=lambda date: find_free_slots(date),
         name="FindFreeSlots",
-        description="Find free time slots on a given date. Inputs: date (e.g. 'Monday'), duration_minutes (e.g. 60)."
+        description="Finds free time slots on a given date like 'Monday' or '9th July'."
     ),
 ]
 
@@ -38,4 +34,4 @@ agent = initialize_agent(
     agent_type="openai-functions",
     verbose=True,
     handle_parsing_errors=True
-)
+) 
