@@ -12,8 +12,22 @@ credentials = service_account.Credentials.from_service_account_info(
 )
 service = build("calendar", "v3", credentials=credentials)
 CALENDAR_ID = "devyanisharmaa15@gmail.com"
-
 TIMEZONE = "Asia/Kolkata"
+
+
+def normalize_date(date_str):
+    """
+    Converts words like 'today', 'tomorrow', 'Monday' or '9th July' into a proper datetime.
+    """
+    try:
+        dt = dateparser.parse(
+            date_str,
+            settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True}
+        )
+        return dt.date().strftime("%Y-%m-%d") if dt else None
+    except Exception as e:
+        return None
+
 
 def parse_date_time(date_str, start_time_str, end_time_str):
     try:
@@ -29,11 +43,16 @@ def parse_date_time(date_str, start_time_str, end_time_str):
     except Exception as e:
         return None, None
 
+
 def book_event(date: str, start_time: str, end_time: str, summary: str = "Meeting") -> str:
-    start_dt, end_dt = parse_date_time(date, start_time, end_time)
+    normalized_date = normalize_date(date)
+    if not normalized_date:
+        return f"❌ Couldn't understand the date: '{date}'"
+
+    start_dt, end_dt = parse_date_time(normalized_date, start_time, end_time)
 
     if not start_dt or not end_dt:
-        return f"❌ Couldn't understand the provided date/time: {date}, {start_time} to {end_time}"
+        return f"❌ Couldn't understand the time: {start_time} to {end_time}"
 
     if start_dt >= end_dt:
         return "❌ Invalid time range: start time must be before end time."
@@ -50,9 +69,13 @@ def book_event(date: str, start_time: str, end_time: str, summary: str = "Meetin
     except Exception as e:
         return f"❌ Failed to book meeting: {e}"
 
-def check_availability(date: str, start_time: str, end_time: str) -> str:
-    start_dt, end_dt = parse_date_time(date, start_time, end_time)
 
+def check_availability(date: str, start_time: str, end_time: str) -> str:
+    normalized_date = normalize_date(date)
+    if not normalized_date:
+        return f"❌ Couldn't understand the date: '{date}'"
+
+    start_dt, end_dt = parse_date_time(normalized_date, start_time, end_time)
     if not start_dt or not end_dt:
         return f"❌ Couldn't parse the time range: {start_time} to {end_time} on {date}."
 
@@ -66,12 +89,14 @@ def check_availability(date: str, start_time: str, end_time: str) -> str:
 
     return "✅ You are free during that time." if not events else "🗓️ You have events during that time."
 
-def check_schedule(date: str) -> str:
-    start_dt = dateparser.parse(f"{date} 00:00", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True})
-    end_dt = dateparser.parse(f"{date} 23:59", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True})
 
-    if not start_dt or not end_dt:
-        return f"❌ Couldn't parse the date: {date}."
+def check_schedule(date: str) -> str:
+    normalized_date = normalize_date(date)
+    if not normalized_date:
+        return f"❌ Couldn't understand the date: '{date}'"
+
+    start_dt = dateparser.parse(f"{normalized_date} 00:00", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True})
+    end_dt = dateparser.parse(f"{normalized_date} 23:59", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True})
 
     events = service.events().list(
         calendarId=CALENDAR_ID,
@@ -89,12 +114,14 @@ def check_schedule(date: str) -> str:
         for e in events
     ])
 
-def find_free_slots(date: str, duration_minutes: int = 60) -> str:
-    start_dt = dateparser.parse(f"{date} 00:00", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True})
-    end_dt = dateparser.parse(f"{date} 23:59", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True})
 
-    if not start_dt or not end_dt:
-        return f"❌ Couldn't parse the date: {date}."
+def find_free_slots(date: str, duration_minutes: int = 60) -> str:
+    normalized_date = normalize_date(date)
+    if not normalized_date:
+        return f"❌ Couldn't understand the date: '{date}'"
+
+    start_dt = dateparser.parse(f"{normalized_date} 00:00", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True})
+    end_dt = dateparser.parse(f"{normalized_date} 23:59", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True})
 
     events = service.events().list(
         calendarId=CALENDAR_ID,
@@ -104,7 +131,10 @@ def find_free_slots(date: str, duration_minutes: int = 60) -> str:
         orderBy="startTime"
     ).execute().get("items", [])
 
-    busy_times = [(dateparser.parse(e["start"]["dateTime"]), dateparser.parse(e["end"]["dateTime"])) for e in events]
+    busy_times = [
+        (dateparser.parse(e["start"]["dateTime"]), dateparser.parse(e["end"]["dateTime"]))
+        for e in events
+    ]
     busy_times.sort()
 
     current = start_dt
@@ -119,5 +149,6 @@ def find_free_slots(date: str, duration_minutes: int = 60) -> str:
         free_slots.append(f"{current.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}")
 
     return "\n".join(free_slots) if free_slots else f"❌ No free {duration_minutes}-minute slots found on {date}."
+
 
 
