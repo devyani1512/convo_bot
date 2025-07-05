@@ -1,33 +1,60 @@
 from langchain.agents import Tool, initialize_agent
 from langchain.chat_models import ChatOpenAI
-from function.googlecalendar import book_event, check_availability, check_schedule, find_free_slots
+from langchain.tools import tool
+from pydantic import BaseModel, Field
 
-# Define tools with clear argument-based invocation
-book_tool = Tool(
-    name="BookEvent",
-    func=lambda date, start_time, end_time: book_event(date, start_time, end_time),
-    description="Books a meeting given a date like 'Monday' or '9th July', and a time range like '2 PM to 3 PM'. Requires three arguments: date, start_time, end_time."
+from function.googlecalendar import (
+    book_event,
+    check_availability,
+    check_schedule,
+    find_free_slots
 )
 
-availability_tool = Tool(
-    name="CheckAvailability",
-    func=lambda date, start_time, end_time: check_availability(date, start_time, end_time),
-    description="Checks if you're free at a given date and time range. Example inputs: date='tomorrow', start_time='3 PM', end_time='4 PM'."
-)
+# --- Define argument schemas ---
+class BookEventArgs(BaseModel):
+    date: str = Field(..., description="Date of the meeting (e.g. 'tomorrow' or '9th July')")
+    start_time: str = Field(..., description="Start time (e.g. '3 PM')")
+    end_time: str = Field(..., description="End time (e.g. '4 PM')")
 
-schedule_tool = Tool(
-    name="CheckSchedule",
-    func=lambda date: check_schedule(date),
-    description="Checks your schedule for a day like 'today', 'tomorrow', or 'Saturday'. Takes one argument: date."
-)
+class CheckAvailabilityArgs(BaseModel):
+    date: str
+    start_time: str
+    end_time: str
 
-free_slots_tool = Tool(
-    name="FindFreeSlots",
-    func=lambda date: find_free_slots(date),
-    description="Finds available time slots on a given day like 'Friday' or '9th July'. Takes one argument: date."
-)
+class CheckScheduleArgs(BaseModel):
+    date: str
 
-tools = [book_tool, availability_tool, schedule_tool, free_slots_tool]
+class FreeSlotsArgs(BaseModel):
+    date: str
+    duration_minutes: int = 60
+
+# --- Tools ---
+tools = [
+    Tool.from_function(
+        func=book_event,
+        name="BookEvent",
+        description="Book a meeting on a given date and time.",
+        args_schema=BookEventArgs
+    ),
+    Tool.from_function(
+        func=check_availability,
+        name="CheckAvailability",
+        description="Check if you're free on a given date and time.",
+        args_schema=CheckAvailabilityArgs
+    ),
+    Tool.from_function(
+        func=check_schedule,
+        name="CheckSchedule",
+        description="Get your schedule for a given day.",
+        args_schema=CheckScheduleArgs
+    ),
+    Tool.from_function(
+        func=find_free_slots,
+        name="FindFreeSlots",
+        description="Find free slots on a given day.",
+        args_schema=FreeSlotsArgs
+    ),
+]
 
 llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
 
@@ -36,6 +63,6 @@ agent = initialize_agent(
     llm=llm,
     agent_type="openai-functions",
     verbose=True,
-    handle_parsing_errors=True,
+    handle_parsing_errors=True
 )
 
