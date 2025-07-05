@@ -1,9 +1,10 @@
-from langchain.agents import tool
+from langchain.chat_models import ChatOpenAI
+from langchain.agents import Tool
 from langchain.agents.openai_functions_agent.agent_token_buffer_memory import AgentTokenBufferMemory
 from langchain.agents import create_openai_functions_agent
-from langchain.tools import Tool
 from langchain.agents.agent import AgentExecutor
-from langchain.chat_models import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.schema.messages import SystemMessage
 
 from function.googlecalendar import (
     book_event, BookEventInput,
@@ -39,8 +40,32 @@ tools = [
     )
 ]
 
+# LLM
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 
-agent = create_openai_functions_agent(llm=llm, tools=tools)
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+# Prompt template for the agent
+prompt = ChatPromptTemplate.from_messages([
+    SystemMessage(content=(
+        "You are a helpful Google Calendar assistant. "
+        "You always answer using real calendar data. "
+        "You can check availability, book events, find free slots, and list schedule for any day."
+    )),
+    MessagesPlaceholder(variable_name="chat_history"),
+    MessagesPlaceholder(variable_name="input")
+])
+
+# Agent
+agent = create_openai_functions_agent(
+    llm=llm,
+    tools=tools,
+    prompt=prompt
+)
+
+# Agent executor
+agent_executor = AgentExecutor(
+    agent=agent,
+    tools=tools,
+    verbose=True
+)
+
 
