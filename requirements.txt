@@ -1,6 +1,7 @@
 streamlit
 openai
 langchain
+langchain-community
 python-dateutil
 dateparser
 google-api-python-client
