@@ -1,8 +1,9 @@
-# app.py
 import streamlit as st
 from setup import agent_executor
 
+st.set_page_config(page_title="Google Calendar Assistant", page_icon="📅")
 st.title("📅 Google Calendar Assistant")
+
 user_input = st.text_input("You:", "")
 
 if user_input:
@@ -18,8 +19,7 @@ if user_input:
     else:
         try:
             with st.spinner("Working..."):
-                response = agent_executor.invoke({"input": user_input})
-            st.success(response["output"])
+                result = agent_executor.invoke({"input": user_input, "chat_history": []})
+            st.success(result["output"])
         except Exception as e:
             st.error(f"⚠️ Something went wrong: {e}")
-
