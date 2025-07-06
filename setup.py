@@ -1,7 +1,9 @@
 from langchain.chat_models import ChatOpenAI
-from langchain.agents import StructuredTool, create_openai_functions_agent, AgentExecutor
+from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema.messages import SystemMessage
+from langchain.tools import StructuredTool
+
 
 from function.googlecalendar import (
     book_event, BookEventInput,
