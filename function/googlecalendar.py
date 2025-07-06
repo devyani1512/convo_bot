@@ -114,5 +114,15 @@ def find_free_slots(date: str, duration_minutes: int = 60) -> str:
     return "\n".join(free_slots) if free_slots else f"❌ No free {duration_minutes}-minute slots on {date}."
 
 
+if __name__ == "__main__":
+    result = book_event(
+        date="9th July",
+        start_time="4 PM",
+        end_time="5 PM",
+        summary="Test Meeting"
+    )
+    print(result)
+
+
 
 
