@@ -1,11 +1,12 @@
+# googlecalendar.py
+
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-import json, os
+import os, json
 from datetime import datetime, timedelta
 import pytz
 import dateparser
-from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
 info = json.loads(creds_json)
@@ -16,52 +17,53 @@ service = build("calendar", "v3", credentials=credentials)
 CALENDAR_ID = "devyanisharmaa15@gmail.com"
 TIMEZONE = "Asia/Kolkata"
 
-def parse_datetime_flexible(date_str, time_str):
-    dt = dateparser.parse(
+class EventInput(BaseModel):
+    date: str
+    start_time: str
+    end_time: str
+    summary: str = "Meeting"
+
+class TimeRangeInput(BaseModel):
+    date: str
+    start_time: str
+    end_time: str
+
+class DayInput(BaseModel):
+    date: str
+
+def parse_date_time(date_str, time_str):
+    return dateparser.parse(
         f"{date_str} {time_str}",
         settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True}
     )
-    return dt
 
-class BookEventInput(BaseModel):
-    date: str = Field(..., description="The day or date like 'Monday' or '9th July'")
-    start_time: str = Field(..., description="Start time like '2 PM'")
-    end_time: str = Field(..., description="End time like '3 PM'")
-    summary: Optional[str] = Field("Meeting", description="Title of the meeting")
-
-def book_event(inputs: BookEventInput) -> str:
-    start_dt = parse_datetime_flexible(inputs.date, inputs.start_time)
-    end_dt = parse_datetime_flexible(inputs.date, inputs.end_time)
+def book_event(input: EventInput) -> str:
+    start_dt = parse_date_time(input.date, input.start_time)
+    end_dt = parse_date_time(input.date, input.end_time)
 
     if not start_dt or not end_dt:
-        return "❌ Couldn't understand the provided date or time."
-
+        return f"❌ Couldn't understand the time range: {input.start_time} to {input.end_time} on {input.date}"
     if start_dt >= end_dt:
-        return "❌ Start time must be before end time."
+        return "❌ Invalid time range."
 
-    event = {
-        "summary": inputs.summary,
+    body = {
+        "summary": input.summary,
         "start": {"dateTime": start_dt.isoformat(), "timeZone": TIMEZONE},
         "end": {"dateTime": end_dt.isoformat(), "timeZone": TIMEZONE},
     }
 
     try:
-        service.events().insert(calendarId=CALENDAR_ID, body=event).execute()
-        return f"✅ Meeting booked on {inputs.date} from {inputs.start_time} to {inputs.end_time}."
+        service.events().insert(calendarId=CALENDAR_ID, body=body).execute()
+        return f"✅ Meeting booked on {input.date} from {input.start_time} to {input.end_time}."
     except Exception as e:
-        return f"❌ Failed to book the meeting: {e}"
+        return f"❌ Failed to book meeting: {e}"
 
-class CheckAvailabilityInput(BaseModel):
-    date: str
-    start_time: str
-    end_time: str
-
-def check_availability(inputs: CheckAvailabilityInput) -> str:
-    start_dt = parse_datetime_flexible(inputs.date, inputs.start_time)
-    end_dt = parse_datetime_flexible(inputs.date, inputs.end_time)
+def check_availability(input: TimeRangeInput) -> str:
+    start_dt = parse_date_time(input.date, input.start_time)
+    end_dt = parse_date_time(input.date, input.end_time)
     if not start_dt or not end_dt:
-        return "❌ Couldn't understand the time range."
-    
+        return "❌ Couldn't parse date/time."
+
     events = service.events().list(
         calendarId=CALENDAR_ID,
         timeMin=start_dt.isoformat(),
@@ -70,20 +72,13 @@ def check_availability(inputs: CheckAvailabilityInput) -> str:
         orderBy="startTime"
     ).execute().get("items", [])
 
-    return "✅ You are free." if not events else "🗓️ You have events during that time."
+    return "✅ You are free during that time." if not events else "🗓️ You have events during that time."
 
-class CheckScheduleInput(BaseModel):
-    date: str
-
-def check_schedule(inputs: CheckScheduleInput) -> str:
-    start_dt = dateparser.parse(
-        f"{inputs.date} 00:00", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True}
-    )
-    end_dt = dateparser.parse(
-        f"{inputs.date} 23:59", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True}
-    )
+def check_schedule(input: DayInput) -> str:
+    start_dt = parse_date_time(input.date, "00:00")
+    end_dt = parse_date_time(input.date, "23:59")
     if not start_dt or not end_dt:
-        return "❌ Couldn't parse the date."
+        return "❌ Couldn't parse date."
 
     events = service.events().list(
         calendarId=CALENDAR_ID,
@@ -94,22 +89,15 @@ def check_schedule(inputs: CheckScheduleInput) -> str:
     ).execute().get("items", [])
 
     if not events:
-        return f"✅ No events scheduled for {inputs.date}."
+        return f"✅ No events scheduled for {input.date}."
 
     return "\n".join([
-        f"{e['summary']} from {e['start']['dateTime']} to {e['end']['dateTime']}"
-        for e in events
+        f"{e['summary']} from {e['start']['dateTime']} to {e['end']['dateTime']}" for e in events
     ])
 
-class FindFreeSlotsInput(BaseModel):
-    date: str
-    duration_minutes: Optional[int] = 60
-
-def find_free_slots(inputs: FindFreeSlotsInput) -> str:
-    start_dt = dateparser.parse(f"{inputs.date} 00:00", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True})
-    end_dt = dateparser.parse(f"{inputs.date} 23:59", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True})
-    if not start_dt or not end_dt:
-        return "❌ Couldn't parse the date."
+def find_free_slots(input: DayInput, duration_minutes: int = 60) -> str:
+    start_dt = parse_date_time(input.date, "00:00")
+    end_dt = parse_date_time(input.date, "23:59")
 
     events = service.events().list(
         calendarId=CALENDAR_ID,
@@ -119,22 +107,21 @@ def find_free_slots(inputs: FindFreeSlotsInput) -> str:
         orderBy="startTime"
     ).execute().get("items", [])
 
-    busy = [(dateparser.parse(e["start"]["dateTime"]), dateparser.parse(e["end"]["dateTime"])) for e in events]
-    busy.sort()
+    busy_times = [(dateparser.parse(e["start"]["dateTime"]), dateparser.parse(e["end"]["dateTime"])) for e in events]
+    busy_times.sort()
 
     current = start_dt
     free_slots = []
 
-    for start, end in busy:
-        if (start - current).total_seconds() >= inputs.duration_minutes * 60:
+    for start, end in busy_times:
+        if (start - current).total_seconds() >= duration_minutes * 60:
             free_slots.append(f"{current.strftime('%I:%M %p')} to {start.strftime('%I:%M %p')}")
         current = max(current, end)
 
-    if (end_dt - current).total_seconds() >= inputs.duration_minutes * 60:
+    if (end_dt - current).total_seconds() >= duration_minutes * 60:
         free_slots.append(f"{current.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}")
 
-    return "\n".join(free_slots) if free_slots else "❌ No free slots found."
-
+    return "\n".join(free_slots) if free_slots else f"❌ No free {duration_minutes}-minute slots on {input.date}."
 
 # This file now uses natural language parsing entirely without Pydantic.
 
