@@ -1,5 +1,6 @@
 import streamlit as st
 from setup import agent_executor
+from langchain.schema import HumanMessage
 
 st.set_page_config(page_title="Google Calendar Assistant", page_icon="📅")
 st.title("📅 Google Calendar Assistant")
@@ -19,7 +20,10 @@ if user_input:
     else:
         try:
             with st.spinner("Working..."):
-                result = agent_executor.invoke({"input": user_input, "chat_history": []})
+                result = agent_executor.invoke({
+                    "input": [HumanMessage(content=user_input)],
+                    "chat_history": []
+                })
             st.success(result["output"])
         except Exception as e:
             st.error(f"⚠️ Something went wrong: {e}")
