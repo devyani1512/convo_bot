@@ -4,43 +4,41 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema.messages import SystemMessage
 from langchain.tools import StructuredTool
 
-
 from function.googlecalendar import (
-    book_event, BookEventInput,
-    check_availability, CheckAvailabilityInput,
-    check_schedule, CheckScheduleInput,
-    find_free_slots, FindFreeSlotsInput
+    book_event,
+    check_availability,
+    check_schedule,
+    find_free_slots
 )
+
+# Define tools
 tools = [
     StructuredTool.from_function(
         func=book_event,
         name="BookEvent",
-        description="Book a meeting with date, start_time, end_time, and optional summary.",
-        args_schema=BookEventInput
+        description="Book a meeting with date, start_time, end_time, and optional summary."
     ),
     StructuredTool.from_function(
         func=check_availability,
         name="CheckAvailability",
-        description="Check if you are available on a given date/time range.",
-        args_schema=CheckAvailabilityInput
+        description="Check if you are available on a given date/time range."
     ),
     StructuredTool.from_function(
         func=check_schedule,
         name="CheckSchedule",
-        description="Get the full schedule for a specific day.",
-        args_schema=CheckScheduleInput
+        description="Get the full schedule for a specific day."
     ),
     StructuredTool.from_function(
         func=find_free_slots,
         name="FindFreeSlots",
-        description="Find free time slots on a day.",
-        args_schema=FindFreeSlotsInput
+        description="Find free time slots on a day."
     ),
 ]
 
-
+# LLM setup
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 
+# Prompt template
 prompt = ChatPromptTemplate.from_messages([
     SystemMessage(content="You are a helpful assistant for Google Calendar."),
     MessagesPlaceholder(variable_name="chat_history"),
@@ -48,8 +46,10 @@ prompt = ChatPromptTemplate.from_messages([
     MessagesPlaceholder(variable_name="agent_scratchpad")
 ])
 
+# Agent setup
 agent = create_openai_functions_agent(llm=llm, tools=tools, prompt=prompt)
 
+# Executor
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
 
