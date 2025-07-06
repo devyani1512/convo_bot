@@ -1,5 +1,3 @@
-# googlecalendar.py
-
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import os, json
@@ -17,18 +15,21 @@ service = build("calendar", "v3", credentials=credentials)
 CALENDAR_ID = "devyanisharmaa15@gmail.com"
 TIMEZONE = "Asia/Kolkata"
 
-class EventInput(BaseModel):
+class BookEventInput(BaseModel):
     date: str
     start_time: str
     end_time: str
     summary: str = "Meeting"
 
-class TimeRangeInput(BaseModel):
+class CheckAvailabilityInput(BaseModel):
     date: str
     start_time: str
     end_time: str
 
-class DayInput(BaseModel):
+class CheckScheduleInput(BaseModel):
+    date: str
+
+class FindFreeSlotsInput(BaseModel):
     date: str
 
 def parse_date_time(date_str, time_str):
@@ -37,14 +38,12 @@ def parse_date_time(date_str, time_str):
         settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True}
     )
 
-def book_event(input: EventInput) -> str:
+def book_event(input: BookEventInput) -> str:
     start_dt = parse_date_time(input.date, input.start_time)
     end_dt = parse_date_time(input.date, input.end_time)
 
-    if not start_dt or not end_dt:
-        return f"❌ Couldn't understand the time range: {input.start_time} to {input.end_time} on {input.date}"
-    if start_dt >= end_dt:
-        return "❌ Invalid time range."
+    if not start_dt or not end_dt or start_dt >= end_dt:
+        return "❌ Invalid or unclear time range."
 
     body = {
         "summary": input.summary,
@@ -58,11 +57,12 @@ def book_event(input: EventInput) -> str:
     except Exception as e:
         return f"❌ Failed to book meeting: {e}"
 
-def check_availability(input: TimeRangeInput) -> str:
+def check_availability(input: CheckAvailabilityInput) -> str:
     start_dt = parse_date_time(input.date, input.start_time)
     end_dt = parse_date_time(input.date, input.end_time)
+
     if not start_dt or not end_dt:
-        return "❌ Couldn't parse date/time."
+        return "❌ Couldn't parse time range."
 
     events = service.events().list(
         calendarId=CALENDAR_ID,
@@ -74,9 +74,10 @@ def check_availability(input: TimeRangeInput) -> str:
 
     return "✅ You are free during that time." if not events else "🗓️ You have events during that time."
 
-def check_schedule(input: DayInput) -> str:
+def check_schedule(input: CheckScheduleInput) -> str:
     start_dt = parse_date_time(input.date, "00:00")
     end_dt = parse_date_time(input.date, "23:59")
+
     if not start_dt or not end_dt:
         return "❌ Couldn't parse date."
 
@@ -95,7 +96,7 @@ def check_schedule(input: DayInput) -> str:
         f"{e['summary']} from {e['start']['dateTime']} to {e['end']['dateTime']}" for e in events
     ])
 
-def find_free_slots(input: DayInput, duration_minutes: int = 60) -> str:
+def find_free_slots(input: FindFreeSlotsInput, duration_minutes: int = 60) -> str:
     start_dt = parse_date_time(input.date, "00:00")
     end_dt = parse_date_time(input.date, "23:59")
 
@@ -122,6 +123,7 @@ def find_free_slots(input: DayInput, duration_minutes: int = 60) -> str:
         free_slots.append(f"{current.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}")
 
     return "\n".join(free_slots) if free_slots else f"❌ No free {duration_minutes}-minute slots on {input.date}."
+
 
 # This file now uses natural language parsing entirely without Pydantic.
 
