@@ -234,7 +234,7 @@
 import os
 from langchain.chat_models import ChatOpenAI
 from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
-from langchain.agents.agent_executor import AgentExecutor
+from langchain.agents import AgentExecutor
 from langchain.tools import Tool
 from langchain.agents import tool
 
