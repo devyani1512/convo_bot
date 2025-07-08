@@ -30,7 +30,7 @@
 
 # app.py
 import streamlit as st
-from setup import agent_executor
+from agent_setup import agent_executor
 from langchain.schema import HumanMessage
 
 st.set_page_config(page_title="Google Calendar Assistant", page_icon="📅")
