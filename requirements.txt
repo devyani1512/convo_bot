@@ -10,3 +10,4 @@ google-auth-oauthlib
 pydantic
 Flask
 gunicorn
+google-auth-httplib2
