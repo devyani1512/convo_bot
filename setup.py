@@ -233,8 +233,8 @@
 # setup.py
 import os
 from langchain.chat_models import ChatOpenAI
-from langchain.agents import AgentExecutor
 from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
+from langchain.agents.agent_executor import AgentExecutor
 from langchain.tools import Tool
 from langchain.agents import tool
 
@@ -243,32 +243,26 @@ from function.googlecalendar import (
     cancel_event,
     check_availability,
     check_schedule,
-    find_free_slots,
+    find_free_slots
 )
 
-# ---- Optional Natural Tools ----
 @tool
 def book_event_natural(text: str) -> str:
-    """Book event via natural language (e.g. 'book call on Friday 4–5 PM')"""
-    return "🧠 This feature needs custom parsing."
+    return "⛔ Natural language booking not implemented yet."
 
 @tool
 def check_availability_natural(text: str) -> str:
-    """Check availability using natural language (e.g. 'next Fri 3–4 PM')"""
-    return "🧠 This feature needs custom parsing."
+    return "⛔ Natural language availability check not implemented yet."
 
-# ---- Define Tools ----
 tools = [
-    Tool.from_function(book_event, name="book_event", description="Book a calendar event."),
-    Tool.from_function(cancel_event, name="cancel_event", description="Cancel an event by summary/date."),
-    Tool.from_function(check_availability, name="check_availability", description="Check availability in a time window."),
-    Tool.from_function(check_schedule, name="check_schedule", description="List all events for a date."),
-    Tool.from_function(find_free_slots, name="find_free_slots", description="Find free slots on a day."),
-    Tool.from_function(book_event_natural, name="book_event_natural", description="(Coming soon) Book event naturally."),
-    Tool.from_function(check_availability_natural, name="check_availability_natural", description="(Coming soon) Check availability naturally."),
+    Tool.from_function(book_event, name="book_event", description="Book an event."),
+    Tool.from_function(cancel_event, name="cancel_event", description="Cancel an event."),
+    Tool.from_function(check_availability, name="check_availability", description="Check availability."),
+    Tool.from_function(check_schedule, name="check_schedule", description="Show day’s schedule."),
+    Tool.from_function(find_free_slots, name="find_free_slots", description="Find free time slots."),
 ]
 
-# ---- Agent ----
 llm = ChatOpenAI(model="gpt-4", temperature=0)
+
 agent = OpenAIFunctionsAgent.from_llm_and_tools(llm=llm, tools=tools)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
