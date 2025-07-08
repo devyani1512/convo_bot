@@ -307,40 +307,96 @@
 
 
 
-from google_auth_oauthlib.flow import Flow
+import os
+import json
+import dateparser
+from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from google.auth.transport.requests import Request
-import google.auth
-import os, json, pickle
-import streamlit as st
+from datetime import datetime, timedelta
 
-SCOPES = ['https://www.googleapis.com/auth/calendar']
-CLIENT_SECRET_FILE = "client_secret.json"
-CREDENTIALS_PICKLE = "token.pkl"
+TIMEZONE = "Asia/Kolkata"
 
-def get_calendar_service():
-    creds = None
-    if os.path.exists(CREDENTIALS_PICKLE):
-        with open(CREDENTIALS_PICKLE, 'rb') as token:
-            creds = pickle.load(token)
+# Load from Render's environment variable
+token_info = json.loads(os.getenv("CLIENT_SECRET_JSON"))
+credentials = Credentials.from_authorized_user_info(info=token_info, scopes=["https://www.googleapis.com/auth/calendar"])
+service = build("calendar", "v3", credentials=credentials)
 
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = Flow.from_client_secrets_file(
-                CLIENT_SECRET_FILE,
-                scopes=SCOPES,
-                redirect_uri="http://localhost:8501"
-            )
-            auth_url, _ = flow.authorization_url(prompt='consent')
-            st.markdown(f"[Authorize Google Calendar]({auth_url})")
-            code = st.text_input("Paste the authorization code here:")
-            if code:
-                flow.fetch_token(code=code)
-                creds = flow.credentials
-                with open(CREDENTIALS_PICKLE, 'wb') as token:
-                    pickle.dump(creds, token)
+def parse_date_time(date_str, time_str):
+    return dateparser.parse(f"{date_str} {time_str}", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True})
 
-    return build('calendar', 'v3', credentials=creds)
+def parse_reminder_string(reminder_str: str) -> list[int]:
+    if not reminder_str:
+        return [15]
+    reminder_str = reminder_str.lower()
+    reminders = []
+    if "hour" in reminder_str:
+        hours = reminder_str.split("hour")[0].strip()
+        if hours.isdigit():
+            reminders.append(int(hours) * 60)
+    if "minute" in reminder_str:
+        minutes = reminder_str.split("and")[-1] if "and" in reminder_str else reminder_str.split("minute")[0]
+        minutes = "".join(filter(str.isdigit, minutes))
+        if minutes:
+            reminders.append(int(minutes))
+    return reminders or [15]
 
+def book_event(date, start_time, end_time, summary="Meeting", reminder=None):
+    start_dt = parse_date_time(date, start_time)
+    end_dt = parse_date_time(date, end_time)
+    if not start_dt or not end_dt or start_dt >= end_dt:
+        return "❌ Invalid or unclear time range."
+    overrides = [{"method": "popup", "minutes": m} for m in parse_reminder_string(reminder)]
+    body = {
+        "summary": summary,
+        "start": {"dateTime": start_dt.isoformat(), "timeZone": TIMEZONE},
+        "end": {"dateTime": end_dt.isoformat(), "timeZone": TIMEZONE},
+        "reminders": {"useDefault": False, "overrides": overrides}
+    }
+    try:
+        service.events().insert(calendarId="primary", body=body).execute()
+        return f"✅ Meeting booked on {date} from {start_time} to {end_time}."
+    except Exception as e:
+        return f"❌ Failed to book meeting: {e}"
+
+def cancel_event(summary, date):
+    start_dt = parse_date_time(date, "00:00")
+    end_dt = parse_date_time(date, "23:59")
+    try:
+        events = service.events().list(calendarId="primary", timeMin=start_dt.isoformat(), timeMax=end_dt.isoformat(), singleEvents=True).execute().get("items", [])
+        for event in events:
+            if event.get("summary", "").lower() == summary.lower():
+                service.events().delete(calendarId="primary", eventId=event["id"]).execute()
+                return f"🗑️ Cancelled event: '{summary}' on {date}."
+        return f"⚠️ No event titled '{summary}' found on {date}."
+    except Exception as e:
+        return f"❌ Failed to cancel event: {e}"
+
+def check_availability(date, start_time, end_time):
+    start_dt = parse_date_time(date, start_time)
+    end_dt = parse_date_time(date, end_time)
+    events = service.events().list(calendarId="primary", timeMin=start_dt.isoformat(), timeMax=end_dt.isoformat(), singleEvents=True).execute().get("items", [])
+    return "✅ You are free during that time." if not events else "🗓️ You have events during that time."
+
+def check_schedule(date):
+    start_dt = parse_date_time(date, "00:00")
+    end_dt = parse_date_time(date, "23:59")
+    events = service.events().list(calendarId="primary", timeMin=start_dt.isoformat(), timeMax=end_dt.isoformat(), singleEvents=True).execute().get("items", [])
+    if not events:
+        return f"✅ No events scheduled for {date}."
+    return "\\n".join([f"{e['summary']} from {e['start']['dateTime']} to {e['end']['dateTime']}" for e in events])
+
+def find_free_slots(date, duration_minutes=60):
+    start_dt = parse_date_time(date, "00:00")
+    end_dt = parse_date_time(date, "23:59")
+    events = service.events().list(calendarId="primary", timeMin=start_dt.isoformat(), timeMax=end_dt.isoformat(), singleEvents=True).execute().get("items", [])
+    busy = [(dateparser.parse(e["start"]["dateTime"]), dateparser.parse(e["end"]["dateTime"])) for e in events]
+    busy.sort()
+    current = start_dt
+    free = []
+    for start, end in busy:
+        if (start - current).total_seconds() >= duration_minutes * 60:
+            free.append(f"{current.strftime('%I:%M %p')} to {start.strftime('%I:%M %p')}")
+        current = max(current, end)
+    if (end_dt - current).total_seconds() >= duration_minutes * 60:
+        free.append(f"{current.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}")
+    return "\\n".join(free) if free else f"❌ No free {duration_minutes}-minute slots on {date}."
