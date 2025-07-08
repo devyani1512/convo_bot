@@ -235,7 +235,14 @@ from langchain.chat_models import ChatOpenAI
 from langchain.agents import AgentExecutor
 from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
 from langchain.tools import Tool
-from googlecalendar import book_event, cancel_event, check_availability, check_schedule, find_free_slots
+from function.googlecalendar import (
+    book_event,
+    cancel_event,
+    check_availability,
+    check_schedule,
+    find_free_slots
+)
+
 
 llm = ChatOpenAI(temperature=0, model="gpt-4", openai_api_key=os.getenv("OPENAI_API_KEY"))
 
