@@ -44,7 +44,7 @@ if "google_token" not in st.session_state:
     flow = Flow.from_client_config(
         client_config=config_info,
         scopes=["https://www.googleapis.com/auth/calendar"],
-        redirect_uri=os.getenv("REDIRECT_URI", "http://localhost:8501")
+        redirect_uri=os.getenv("https://convo-bot-p5ex.onrender.com", "http://localhost:8501")
     )
 
     auth_url, _ = flow.authorization_url(prompt="consent")
