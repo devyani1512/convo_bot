@@ -306,47 +306,24 @@
 #     return "\n".join(free_slots) if free_slots else f"❌ No free {duration_minutes}-minute slots on {date}."
 
 
-
 import os, json, dateparser
-from datetime import datetime, timedelta
+from datetime import datetime
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-import streamlit as st
 
 TIMEZONE = "Asia/Kolkata"
 
-# Get user credentials from session state
-
-def get_user_credentials():
-    config = json.loads(os.getenv("CLIENT_CONFIG_JSON"))
-    if "token" not in st.session_state:
-        st.warning("Please login to use Google Calendar.")
-        st.stop()
-
-    return Credentials(
-        token=st.session_state["token"]["access_token"],
-        refresh_token=st.session_state["token"]["refresh_token"],
-        token_uri=config["web"]["token_uri"],
-        client_id=config["web"]["client_id"],
-        client_secret=config["web"]["client_secret"],
-        scopes=["https://www.googleapis.com/auth/calendar"]
-    )
-
-# Build the calendar service
+def get_credentials():
+    token_info = json.loads(os.getenv("USER_TOKEN_JSON", "{}"))
+    if not token_info:
+        raise ValueError("Missing USER_TOKEN_JSON in environment")
+    return Credentials.from_authorized_user_info(info=token_info, scopes=["https://www.googleapis.com/auth/calendar"])
 
 def get_calendar_service():
-    creds = get_user_credentials()
-    return build("calendar", "v3", credentials=creds)
-
-# Parse date and time
+    return build("calendar", "v3", credentials=get_credentials())
 
 def parse_date_time(date_str, time_str):
-    return dateparser.parse(
-        f"{date_str} {time_str}",
-        settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True}
-    )
-
-# Parse reminder strings
+    return dateparser.parse(f"{date_str} {time_str}", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True})
 
 def parse_reminder_string(reminder_str):
     if not reminder_str:
@@ -363,8 +340,6 @@ def parse_reminder_string(reminder_str):
         if minutes:
             reminders.append(int(minutes))
     return reminders or [15]
-
-# Book an event
 
 def book_event(date, start_time, end_time, summary="Meeting", reminder=None):
     service = get_calendar_service()
@@ -383,19 +358,12 @@ def book_event(date, start_time, end_time, summary="Meeting", reminder=None):
     except Exception as e:
         return f"❌ Failed to book meeting: {e}"
 
-# Cancel event
-
 def cancel_event(summary, date):
     service = get_calendar_service()
     start_dt = parse_date_time(date, "00:00")
     end_dt = parse_date_time(date, "23:59")
     try:
-        events = service.events().list(
-            calendarId="primary",
-            timeMin=start_dt.isoformat(),
-            timeMax=end_dt.isoformat(),
-            singleEvents=True
-        ).execute().get("items", [])
+        events = service.events().list(calendarId="primary", timeMin=start_dt.isoformat(), timeMax=end_dt.isoformat(), singleEvents=True).execute().get("items", [])
         for event in events:
             if event.get("summary", "").lower() == summary.lower():
                 service.events().delete(calendarId="primary", eventId=event["id"]).execute()
@@ -404,50 +372,27 @@ def cancel_event(summary, date):
     except Exception as e:
         return f"❌ Failed to cancel event: {e}"
 
-# Check availability
-
 def check_availability(date, start_time, end_time):
     service = get_calendar_service()
     start_dt = parse_date_time(date, start_time)
     end_dt = parse_date_time(date, end_time)
-    events = service.events().list(
-        calendarId="primary",
-        timeMin=start_dt.isoformat(),
-        timeMax=end_dt.isoformat(),
-        singleEvents=True
-    ).execute().get("items", [])
+    events = service.events().list(calendarId="primary", timeMin=start_dt.isoformat(), timeMax=end_dt.isoformat(), singleEvents=True).execute().get("items", [])
     return "✅ You are free during that time." if not events else "🗓️ You have events during that time."
-
-# Check full schedule for a day
 
 def check_schedule(date):
     service = get_calendar_service()
     start_dt = parse_date_time(date, "00:00")
     end_dt = parse_date_time(date, "23:59")
-    events = service.events().list(
-        calendarId="primary",
-        timeMin=start_dt.isoformat(),
-        timeMax=end_dt.isoformat(),
-        singleEvents=True
-    ).execute().get("items", [])
+    events = service.events().list(calendarId="primary", timeMin=start_dt.isoformat(), timeMax=end_dt.isoformat(), singleEvents=True).execute().get("items", [])
     if not events:
         return f"✅ No events scheduled for {date}."
-    return "\n".join([
-        f"{e['summary']} from {e['start']['dateTime']} to {e['end']['dateTime']}" for e in events
-    ])
-
-# Find free slots
+    return "\n".join([f"{e['summary']} from {e['start']['dateTime']} to {e['end']['dateTime']}" for e in events])
 
 def find_free_slots(date, duration_minutes=60):
     service = get_calendar_service()
     start_dt = parse_date_time(date, "00:00")
     end_dt = parse_date_time(date, "23:59")
-    events = service.events().list(
-        calendarId="primary",
-        timeMin=start_dt.isoformat(),
-        timeMax=end_dt.isoformat(),
-        singleEvents=True
-    ).execute().get("items", [])
+    events = service.events().list(calendarId="primary", timeMin=start_dt.isoformat(), timeMax=end_dt.isoformat(), singleEvents=True).execute().get("items", [])
     busy = [(dateparser.parse(e["start"]["dateTime"]), dateparser.parse(e["end"]["dateTime"])) for e in events]
     busy.sort()
     current = start_dt
@@ -459,3 +404,4 @@ def find_free_slots(date, duration_minutes=60):
     if (end_dt - current).total_seconds() >= duration_minutes * 60:
         free.append(f"{current.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}")
     return "\n".join(free) if free else f"❌ No free {duration_minutes}-minute slots on {date}."
+
