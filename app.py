@@ -57,3 +57,4 @@ if user_input:
                 st.success(result["output"])
             except Exception as e:
                 st.error(f"⚠️ Error: {e}")
+                st.error(f"⚠️ Error: {e}")
