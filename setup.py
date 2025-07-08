@@ -230,46 +230,22 @@
 # # Executor
 # agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
-
 import os
-from langchain.agents import initialize_agent, AgentType, tool
-from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
-from langchain.agents import AgentExecutor
 from langchain.chat_models import ChatOpenAI
+from langchain.agents import AgentExecutor
+from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
 from langchain.tools import Tool
-from googlecalendar import (
-    book_event,
-    cancel_event,
-    check_availability,
-    check_schedule,
-    find_free_slots
-)
+from googlecalendar import book_event, cancel_event, check_availability, check_schedule, find_free_slots
 
-# ---- Initialize LLM ----
 llm = ChatOpenAI(temperature=0, model="gpt-4", openai_api_key=os.getenv("OPENAI_API_KEY"))
 
-# ---- Define Tools ----
-@tool
-def book_event_natural(text: str) -> str:
-    """Book an event using natural language input like 'Book a team call on Friday 4 PM to 5 PM'."""
-    return book_event(*parse_booking_input(text))
-
-@tool
-def check_availability_natural(text: str) -> str:
-    """Check if you're free during a natural language described time (e.g. 'next Friday from 2 to 3 PM')."""
-    return check_availability(*parse_availability_input(text))
-
 tools = [
-    Tool.from_function(book_event, name="book_event", description="Book an event on the calendar using structured input."),
-    Tool.from_function(cancel_event, name="cancel_event", description="Cancel an event by summary and date."),
-    Tool.from_function(check_availability, name="check_availability", description="Check availability given a date and time range."),
-    Tool.from_function(check_schedule, name="check_schedule", description="Get all events for a given day."),
-    Tool.from_function(find_free_slots, name="find_free_slots", description="Find free time slots on a specific day."),
-    Tool.from_function(book_event_natural, name="book_event_natural", description="Book using natural language input."),
-    Tool.from_function(check_availability_natural, name="check_availability_natural", description="Check free/busy time using natural input."),
+    Tool.from_function(book_event, name="book_event", description="Book a calendar event."),
+    Tool.from_function(cancel_event, name="cancel_event", description="Cancel a calendar event."),
+    Tool.from_function(check_availability, name="check_availability", description="Check if you're available."),
+    Tool.from_function(check_schedule, name="check_schedule", description="List events for a day."),
+    Tool.from_function(find_free_slots, name="find_free_slots", description="Find free time slots on a date.")
 ]
 
-# ---- Initialize Agent ----
 agent = OpenAIFunctionsAgent.from_llm_and_tools(llm=llm, tools=tools)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-
