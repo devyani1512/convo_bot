@@ -258,6 +258,3 @@ tools = [
 agent = OpenAIFunctionsAgent.from_llm_and_tools(llm=llm, tools=tools)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
-agent = OpenAIFunctionsAgent.from_llm_and_tools(llm=llm, tools=tools)
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-
