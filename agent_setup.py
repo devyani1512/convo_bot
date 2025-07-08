@@ -233,8 +233,8 @@
 # setup.py
 import os
 from langchain_community.chat_models import ChatOpenAI
-from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
 from langchain.agents import AgentExecutor
+from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
 from langchain.tools import Tool
 from langchain.agents import tool
 
@@ -248,19 +248,19 @@ from function.googlecalendar import (
 
 @tool
 def book_event_natural(text: str) -> str:
-    """Book an event using a natural sentence like 'Book meeting tomorrow 3 to 4pm'."""
-    return "⛔ Natural language booking not implemented yet."
+    """Book a meeting using natural language input like 'Book a meeting next Monday 3 PM to 4 PM'."""
+    return "⛔ Natural language parser not implemented."
 
 @tool
 def check_availability_natural(text: str) -> str:
-    """Check if you're available using a sentence like 'Am I free this Friday from 10 to 11?'"""
-    return "⛔ Natural language availability check not implemented yet."
+    """Check availability using natural language input like 'Am I free next Thursday from 10 to 11 AM?'."""
+    return "⛔ Natural language parser not implemented."
 
 tools = [
-    Tool.from_function(book_event, name="book_event", description="Book an event."),
-    Tool.from_function(cancel_event, name="cancel_event", description="Cancel an event."),
+    Tool.from_function(book_event, name="book_event", description="Book a calendar event."),
+    Tool.from_function(cancel_event, name="cancel_event", description="Cancel a calendar event."),
     Tool.from_function(check_availability, name="check_availability", description="Check availability."),
-    Tool.from_function(check_schedule, name="check_schedule", description="Show day's schedule."),
+    Tool.from_function(check_schedule, name="check_schedule", description="Get full schedule of a day."),
     Tool.from_function(find_free_slots, name="find_free_slots", description="Find free time slots."),
     book_event_natural,
     check_availability_natural
@@ -270,3 +270,4 @@ llm = ChatOpenAI(model="gpt-4", temperature=0)
 
 agent = OpenAIFunctionsAgent.from_llm_and_tools(llm=llm, tools=tools)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
