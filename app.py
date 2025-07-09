@@ -31,15 +31,17 @@
 # app.py
 import streamlit as st
 from agent_setup import agent_executor
-from langchain.schema import HumanMessage
+from langchain_core.messages import HumanMessage
 
 st.set_page_config(page_title="📅 Google Calendar Assistant", page_icon="📅")
 st.title("📅 Google Calendar Assistant")
 
 user_input = st.text_input("You:", "")
+
 if user_input:
     greetings = ["hi", "hello", "hey", "how are you", "who are you"]
     lower_input = user_input.lower()
+
     if any(greet in lower_input for greet in greetings):
         if "how are you" in lower_input:
             st.write("🤖 I'm great, thanks! What can I help you schedule today?")
@@ -51,10 +53,10 @@ if user_input:
         with st.spinner("Thinking..."):
             try:
                 result = agent_executor.invoke({
-                    "input": [HumanMessage(content=user_input)],
+                    "input": HumanMessage(content=user_input),
                     "chat_history": []
                 })
                 st.success(result["output"])
             except Exception as e:
                 st.error(f"⚠️ Error: {e}")
-                st.error(f"⚠️ Error: {e}")
+
