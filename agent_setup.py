@@ -232,15 +232,29 @@
 
 # agent_setup.py
 # agent_setup.py
+# agent_setup.py
 import os
-os.environ.pop("proxies", None) 
+
+# 💥 Defensive cleanup to block injected proxies
+os.environ.pop("proxies", None)
+os.environ.pop("HTTP_PROXY", None)
+os.environ.pop("HTTPS_PROXY", None)
+
+# Optional: clean openai proxy config
+try:
+    import openai
+    openai.proxy = None
+    if hasattr(openai, "config"):
+        openai.config.proxies = None
+except ImportError:
+    pass
+
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage
 from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.tools import StructuredTool
 from pydantic import BaseModel
-
 
 from function.googlecalendar import (
     book_event,
