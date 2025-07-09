@@ -233,6 +233,8 @@
 # setup.py
 import os
 from langchain_community.chat_models import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import SystemMessage
 # from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
 # from langchain.agents import AgentExecutor
 from langchain.agents import create_openai_functions_agent, AgentExecutor
@@ -256,6 +258,13 @@ tools = [
     Tool.from_function(find_free_slots, name="find_free_slots", description="Find free time slots."),
 ]
 
+ prompt = ChatPromptTemplate.from_messages([
+     SystemMessage(content="You are a helpful assistant for Google Calendar. Always ask for confirmation before booking."),
+     MessagesPlaceholder(variable_name="chat_history"),
+     MessagesPlaceholder(variable_name="input"),
+    MessagesPlaceholder(variable_name="agent_scratchpad")
+ ])
+     
 # agent = OpenAIFunctionsAgent.from_llm_and_tools(llm=llm, tools=tools)
 agent = create_openai_functions_agent(llm=llm, tools=tools, prompt=prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
