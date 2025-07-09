@@ -231,12 +231,14 @@
 # agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
 # agent_setup.py
+# agent_setup.py
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage
 from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.tools import StructuredTool
 from pydantic import BaseModel
+import os
 
 from function.googlecalendar import (
     book_event,
@@ -246,7 +248,11 @@ from function.googlecalendar import (
     find_free_slots
 )
 
-llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+llm = ChatOpenAI(
+    model="gpt-3.5-turbo",
+    temperature=0,
+    api_key=os.getenv("OPENAI_API_KEY")
+)
 
 class BookEventInput(BaseModel):
     date: str
