@@ -1,21 +1,23 @@
-# LLM + Tools
-openai==1.31.0
-langchain==0.2.1
+# ✅ LLM + Agent Framework
+openai==1.30.1
+langchain==0.1.16
+langchain-core==0.1.49
 langchain-openai==0.1.5
 
-# Google Calendar
+# ✅ Google Calendar OAuth + API
 google-api-python-client==2.125.0
 google-auth==2.29.0
 google-auth-oauthlib==1.2.0
 google-auth-httplib2==0.2.0
 
-# Utilities
+# ✅ Utilities
 dateparser==1.2.0
 python-dateutil==2.9.0.post0
 pydantic==2.7.1
 
-# Streamlit frontend
+# ✅ Streamlit frontend
 streamlit==1.35.0
+
 
 
 
