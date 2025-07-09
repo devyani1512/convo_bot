@@ -232,7 +232,7 @@
 
 # setup.py
 import os
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage
 from langchain.agents import create_openai_functions_agent, AgentExecutor
