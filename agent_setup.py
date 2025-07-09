@@ -233,8 +233,9 @@
 # setup.py
 import os
 from langchain_community.chat_models import ChatOpenAI
-from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
-from langchain.agents import AgentExecutor
+# from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
+# from langchain.agents import AgentExecutor
+from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.tools import Tool
 
 from function.googlecalendar import (
@@ -255,6 +256,7 @@ tools = [
     Tool.from_function(find_free_slots, name="find_free_slots", description="Find free time slots."),
 ]
 
-agent = OpenAIFunctionsAgent.from_llm_and_tools(llm=llm, tools=tools)
+# agent = OpenAIFunctionsAgent.from_llm_and_tools(llm=llm, tools=tools)
+agent = create_openai_functions_agent(llm=llm, tools=tools, prompt=prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
