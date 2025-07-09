@@ -305,6 +305,7 @@
 
 #     return "\n".join(free_slots) if free_slots else f"❌ No free {duration_minutes}-minute slots on {date}."
 
+
 import os, json, dateparser
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
