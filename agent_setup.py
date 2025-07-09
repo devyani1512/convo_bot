@@ -233,6 +233,7 @@
 # agent_setup.py
 # agent_setup.py
 # agent_setup.py
+# agent_setup.py
 import os
 
 # 💥 Defensive cleanup to block injected proxies
@@ -240,14 +241,13 @@ os.environ.pop("proxies", None)
 os.environ.pop("HTTP_PROXY", None)
 os.environ.pop("HTTPS_PROXY", None)
 
-# Optional: clean openai proxy config
 try:
     import openai
-    openai.proxy = None
+    print("🔍 OpenAI version:", openai.__version__)
     if hasattr(openai, "config"):
         openai.config.proxies = None
 except ImportError:
-    pass
+    print("❌ OpenAI not installed")
 
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
