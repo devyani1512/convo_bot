@@ -246,8 +246,10 @@ from function.googlecalendar import (
     find_free_slots
 )
 
+# ✅ Load the LLM (OpenAI GPT-4)
 llm = ChatOpenAI(model="gpt-4", temperature=0)
 
+# ✅ Define your tools (Google Calendar actions)
 tools = [
     Tool.from_function(book_event, name="book_event", description="Book an event."),
     Tool.from_function(cancel_event, name="cancel_event", description="Cancel an event."),
@@ -256,6 +258,7 @@ tools = [
     Tool.from_function(find_free_slots, name="find_free_slots", description="Find free time slots."),
 ]
 
+# ✅ Agent prompt with memory and confirmation
 prompt = ChatPromptTemplate.from_messages([
     SystemMessage(content="You are a helpful assistant for Google Calendar. Always ask for confirmation before booking."),
     MessagesPlaceholder(variable_name="chat_history"),
@@ -263,5 +266,6 @@ prompt = ChatPromptTemplate.from_messages([
     MessagesPlaceholder(variable_name="agent_scratchpad")
 ])
 
+# ✅ Create the OpenAI Functions agent and executor
 agent = create_openai_functions_agent(llm=llm, tools=tools, prompt=prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
