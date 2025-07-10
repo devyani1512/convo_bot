@@ -235,7 +235,8 @@
 # agent_setup.py
 # agent_setup.py
 import os
-
+import openai
+openai.api_key = os.getenv("OPENAI_API_KEY")
 # 💥 Defensive cleanup to block injected proxies
 os.environ.pop("proxies", None)
 os.environ.pop("HTTP_PROXY", None)
