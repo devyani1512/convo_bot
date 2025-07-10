@@ -273,7 +273,7 @@ from function.googlecalendar import (
 llm = ChatOpenAI(
     model="gpt-3.5-turbo",
     temperature=0,
-    api_key=os.getenv("OPENAI_API_KEY")
+    # api_key=os.getenv("OPENAI_API_KEY")
 )
 
 class BookEventInput(BaseModel):
