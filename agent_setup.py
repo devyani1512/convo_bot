@@ -246,6 +246,12 @@ try:
     print("🔍 OpenAI version:", openai.__version__)
     if hasattr(openai, "config"):
         openai.config.proxies = None
+
+    # ✅ Patch to ignore 'proxies' argument if passed
+    from openai import OpenAI
+    OpenAI.__init__ = lambda self, *args, **kwargs: super(OpenAI, self).__init__(
+        *args, **{k: v for k, v in kwargs.items() if k != "proxies"}
+    )
 except ImportError:
     print("❌ OpenAI not installed")
 
@@ -310,3 +316,4 @@ prompt = ChatPromptTemplate.from_messages([
 
 agent = create_openai_functions_agent(llm=llm, tools=tools, prompt=prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
