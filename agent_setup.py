@@ -235,16 +235,6 @@
 # agent_setup.py
 # agent_setup.py
 import os
-import openai
-
-# ✅ Clear problematic proxy env variables
-os.environ.pop("proxies", None)
-os.environ.pop("HTTP_PROXY", None)
-os.environ.pop("HTTPS_PROXY", None)
-
-# ✅ Set OpenAI key globally (REQUIRED for openai>=1.0 and langchain-openai>=0.1.6)
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage
@@ -252,7 +242,11 @@ from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.tools import StructuredTool
 from pydantic import BaseModel
 
-# ⬇️ Your calendar tool functions
+# ✅ Setup OpenAI key via env
+from openai import OpenAI
+OpenAI.api_key = os.getenv("OPENAI_API_KEY")
+
+# ⬇️ Import your tools
 from function.googlecalendar import (
     book_event,
     cancel_event,
@@ -261,13 +255,10 @@ from function.googlecalendar import (
     find_free_slots
 )
 
-# ✅ LLM setup WITHOUT 'api_key' param
-llm = ChatOpenAI(
-    model="gpt-3.5-turbo",
-    temperature=0
-)
+# ✅ Model setup
+llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 
-# ✅ Tool input schemas
+# ✅ Tool Schemas
 class BookEventInput(BaseModel):
     date: str
     start_time: str
@@ -291,7 +282,6 @@ class FindFreeSlotsInput(BaseModel):
     date: str
     duration_minutes: int = 60
 
-# ✅ Tools setup
 tools = [
     StructuredTool.from_function(book_event, name="BookEvent", description="Book a meeting in Google Calendar", args_schema=BookEventInput),
     StructuredTool.from_function(cancel_event, name="CancelEvent", description="Cancel a meeting on a specific date", args_schema=CancelEventInput),
@@ -300,7 +290,6 @@ tools = [
     StructuredTool.from_function(find_free_slots, name="FindFreeSlots", description="Find free time slots on a specific date", args_schema=FindFreeSlotsInput),
 ]
 
-# ✅ Prompt with placeholders
 prompt = ChatPromptTemplate.from_messages([
     SystemMessage(content="You are a helpful assistant for Google Calendar. Always ask for confirmation before booking."),
     MessagesPlaceholder(variable_name="chat_history"),
@@ -308,6 +297,5 @@ prompt = ChatPromptTemplate.from_messages([
     MessagesPlaceholder(variable_name="agent_scratchpad")
 ])
 
-# ✅ Final Agent setup
 agent = create_openai_functions_agent(llm=llm, tools=tools, prompt=prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
