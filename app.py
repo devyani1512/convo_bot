@@ -34,7 +34,7 @@
 # 📁 app.py
 
 import streamlit as st
-from openai import OPENAI
+from openai import OpenAI
 import os
 import json
 from function.googlecalendar import (
