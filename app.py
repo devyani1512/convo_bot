@@ -30,10 +30,12 @@
 
 # app.py
 # app.py
+# 📁 File: app.py
 import streamlit as st
-import openai
+from openai import OpenAI
 import os
 import json
+
 from function.googlecalendar import (
     book_event,
     cancel_event,
@@ -42,18 +44,21 @@ from function.googlecalendar import (
     find_free_slots
 )
 
+# ✅ Setup
 st.set_page_config(page_title="📅 Google Calendar Assistant", page_icon="📅")
 st.title("📅 Google Calendar Assistant")
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+# ✅ Input from user
 user_input = st.chat_input("You:")
 if user_input:
     st.session_state.chat_history.append({"role": "user", "content": user_input})
 
+    # ✅ Define available functions (OpenAI-style)
     function_definitions = [
         {
             "name": "book_event",
@@ -72,7 +77,7 @@ if user_input:
         },
         {
             "name": "cancel_event",
-            "description": "Cancel an event by title and date.",
+            "description": "Cancel a calendar event.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -84,7 +89,7 @@ if user_input:
         },
         {
             "name": "check_availability",
-            "description": "Check availability on date and time.",
+            "description": "Check if there are any events in a time range.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -97,7 +102,7 @@ if user_input:
         },
         {
             "name": "check_schedule",
-            "description": "Get schedule for a day.",
+            "description": "Show all events on a particular date.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -108,7 +113,7 @@ if user_input:
         },
         {
             "name": "find_free_slots",
-            "description": "Find free time slots for a given date and duration.",
+            "description": "Find free slots on a day for a given duration.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -122,17 +127,20 @@ if user_input:
 
     with st.spinner("Thinking..."):
         try:
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-4",
                 messages=st.session_state.chat_history,
                 functions=function_definitions,
                 function_call="auto"
             )
-            message = response["choices"][0]["message"]
 
-            if message.get("function_call"):
-                fn_name = message["function_call"]["name"]
-                args = json.loads(message["function_call"]["arguments"])
+            message = response.choices[0].message
+
+            # ✅ Handle function call
+            if message.function_call:
+                fn_name = message.function_call.name
+                args = json.loads(message.function_call.arguments)
+
                 fn_map = {
                     "book_event": book_event,
                     "cancel_event": cancel_event,
@@ -140,12 +148,21 @@ if user_input:
                     "check_schedule": check_schedule,
                     "find_free_slots": find_free_slots
                 }
+
                 result = fn_map[fn_name](**args)
-                st.session_state.chat_history.append({"role": "function", "name": fn_name, "content": result})
+
+                st.session_state.chat_history.append({
+                    "role": "function",
+                    "name": fn_name,
+                    "content": result
+                })
                 st.success(result)
+
             else:
-                content = message["content"]
+                # Assistant reply
+                content = message.content
                 st.session_state.chat_history.append({"role": "assistant", "content": content})
                 st.success(content)
+
         except Exception as e:
             st.error(f"⚠️ Error: {e}")
