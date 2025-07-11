@@ -234,69 +234,72 @@
 # agent_setup.py
 # agent_setup.py
 # agent_setup.py
-import os
-from langchain_openai import ChatOpenAI
-from langchain.agents import create_openai_functions_agent, AgentExecutor
-from langchain.tools import StructuredTool
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import SystemMessage
-from pydantic import BaseModel
 
-from function.googlecalendar import (
-    book_event,
-    cancel_event,
-    check_availability,
-    check_schedule,
-    find_free_slots
-)
 
-# ✅ Use environment variable for OpenAI key
-llm = ChatOpenAI(
-    model="gpt-3.5-turbo",
-    temperature=0,
-    openai_api_key=os.getenv("OPENAI_API_KEY")  # ✅ correct keyword
-)
 
-# ✅ Tool Input Schemas
-class BookEventInput(BaseModel):
-    date: str
-    start_time: str
-    end_time: str
-    summary: str = "Meeting"
-    reminder: str | None = None
+# import os
+# from langchain_openai import ChatOpenAI
+# from langchain.agents import create_openai_functions_agent, AgentExecutor
+# from langchain.tools import StructuredTool
+# from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+# from langchain_core.messages import SystemMessage
+# from pydantic import BaseModel
 
-class CancelEventInput(BaseModel):
-    summary: str
-    date: str
+# from function.googlecalendar import (
+#     book_event,
+#     cancel_event,
+#     check_availability,
+#     check_schedule,
+#     find_free_slots
+# )
 
-class CheckAvailabilityInput(BaseModel):
-    date: str
-    start_time: str
-    end_time: str
+# # ✅ Use environment variable for OpenAI key
+# llm = ChatOpenAI(
+#     model="gpt-3.5-turbo",
+#     temperature=0,
+#     openai_api_key=os.getenv("OPENAI_API_KEY")  # ✅ correct keyword
+# )
 
-class CheckScheduleInput(BaseModel):
-    date: str
+# # ✅ Tool Input Schemas
+# class BookEventInput(BaseModel):
+#     date: str
+#     start_time: str
+#     end_time: str
+#     summary: str = "Meeting"
+#     reminder: str | None = None
 
-class FindFreeSlotsInput(BaseModel):
-    date: str
-    duration_minutes: int = 60
+# class CancelEventInput(BaseModel):
+#     summary: str
+#     date: str
 
-# ✅ Langchain Tools
-tools = [
-    StructuredTool.from_function(book_event, name="BookEvent", description="Book a meeting", args_schema=BookEventInput),
-    StructuredTool.from_function(cancel_event, name="CancelEvent", description="Cancel a meeting", args_schema=CancelEventInput),
-    StructuredTool.from_function(check_availability, name="CheckAvailability", description="Check free time slot", args_schema=CheckAvailabilityInput),
-    StructuredTool.from_function(check_schedule, name="CheckSchedule", description="Check meetings on a date", args_schema=CheckScheduleInput),
-    StructuredTool.from_function(find_free_slots, name="FindFreeSlots", description="Find open slots", args_schema=FindFreeSlotsInput),
-]
+# class CheckAvailabilityInput(BaseModel):
+#     date: str
+#     start_time: str
+#     end_time: str
 
-# ✅ Prompt + Agent
-prompt = ChatPromptTemplate.from_messages([
-    SystemMessage(content="You're a helpful assistant for Google Calendar. Always ask before booking."),
-    MessagesPlaceholder(variable_name="chat_history"),
-    MessagesPlaceholder(variable_name="input"),
-    MessagesPlaceholder(variable_name="agent_scratchpad")
-])
+# class CheckScheduleInput(BaseModel):
+#     date: str
 
-agent = create_openai_functions_agent(llm=llm, tools=tools, prompt=prompt)
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+# class FindFreeSlotsInput(BaseModel):
+#     date: str
+#     duration_minutes: int = 60
+
+# # ✅ Langchain Tools
+# tools = [
+#     StructuredTool.from_function(book_event, name="BookEvent", description="Book a meeting", args_schema=BookEventInput),
+#     StructuredTool.from_function(cancel_event, name="CancelEvent", description="Cancel a meeting", args_schema=CancelEventInput),
+#     StructuredTool.from_function(check_availability, name="CheckAvailability", description="Check free time slot", args_schema=CheckAvailabilityInput),
+#     StructuredTool.from_function(check_schedule, name="CheckSchedule", description="Check meetings on a date", args_schema=CheckScheduleInput),
+#     StructuredTool.from_function(find_free_slots, name="FindFreeSlots", description="Find open slots", args_schema=FindFreeSlotsInput),
+# ]
+
+# # ✅ Prompt + Agent
+# prompt = ChatPromptTemplate.from_messages([
+#     SystemMessage(content="You're a helpful assistant for Google Calendar. Always ask before booking."),
+#     MessagesPlaceholder(variable_name="chat_history"),
+#     MessagesPlaceholder(variable_name="input"),
+#     MessagesPlaceholder(variable_name="agent_scratchpad")
+# ])
+
+# agent = create_openai_functions_agent(llm=llm, tools=tools, prompt=prompt)
+# agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
