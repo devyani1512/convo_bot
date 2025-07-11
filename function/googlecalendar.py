@@ -315,11 +315,17 @@ TIMEZONE = "Asia/Kolkata"
 
 def get_calendar_service():
     token_info = json.loads(os.getenv("CLIENT_CONFIG_JSON"))
-    credentials = Credentials.from_authorized_user_info(info=token_info, scopes=["https://www.googleapis.com/auth/calendar"])
+    credentials = Credentials.from_authorized_user_info(
+        info=token_info,
+        scopes=["https://www.googleapis.com/auth/calendar"]
+    )
     return build("calendar", "v3", credentials=credentials)
 
 def parse_date_time(date_str, time_str):
-    return dateparser.parse(f"{date_str} {time_str}", settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True})
+    return dateparser.parse(
+        f"{date_str} {time_str}",
+        settings={"TIMEZONE": TIMEZONE, "RETURN_AS_TIMEZONE_AWARE": True}
+    )
 
 def parse_reminder_string(reminder_str):
     if not reminder_str:
@@ -350,9 +356,9 @@ def book_event(date: str, start_time: str, end_time: str, summary: str = "Meetin
     }
     try:
         service.events().insert(calendarId="primary", body=body).execute()
-        return f"\u2705 Meeting booked on {date} from {start_time} to {end_time}."
+        return f"✅ Meeting booked on {date} from {start_time} to {end_time}."
     except Exception as e:
-        return f"\u274c Failed to book meeting: {e}"
+        return f"❌ Failed to book meeting: {e}"
 
 def cancel_event(summary: str, date: str) -> str:
     service = get_calendar_service()
@@ -363,17 +369,17 @@ def cancel_event(summary: str, date: str) -> str:
         for event in events:
             if event.get("summary", "").lower() == summary.lower():
                 service.events().delete(calendarId="primary", eventId=event["id"]).execute()
-                return f"\ud83d\uddd1\ufe0f Cancelled event: '{summary}' on {date}."
-        return f"\u26a0\ufe0f No event titled '{summary}' found on {date}."
+                return f"🗑️ Cancelled event: '{summary}' on {date}."
+        return f"⚠️ No event titled '{summary}' found on {date}."
     except Exception as e:
-        return f"\u274c Failed to cancel event: {e}"
+        return f"❌ Failed to cancel event: {e}"
 
 def check_availability(date: str, start_time: str, end_time: str) -> str:
     service = get_calendar_service()
     start_dt = parse_date_time(date, start_time)
     end_dt = parse_date_time(date, end_time)
     events = service.events().list(calendarId="primary", timeMin=start_dt.isoformat(), timeMax=end_dt.isoformat(), singleEvents=True).execute().get("items", [])
-    return "\u2705 You are free during that time." if not events else "\ud83d\uddd3\ufe0f You have events during that time."
+    return "✅ You are free during that time." if not events else "🗓️ You have events during that time."
 
 def check_schedule(date: str) -> str:
     service = get_calendar_service()
@@ -381,9 +387,9 @@ def check_schedule(date: str) -> str:
     end_dt = parse_date_time(date, "23:59")
     events = service.events().list(calendarId="primary", timeMin=start_dt.isoformat(), timeMax=end_dt.isoformat(), singleEvents=True).execute().get("items", [])
     if not events:
-        return f"\u2705 No events scheduled for {date}."
+        return f"✅ No events scheduled for {date}."
     return "\n".join([
-        f"\ud83d\udccc {e['summary']} from {dateparser.parse(e['start']['dateTime']).strftime('%I:%M %p')} to {dateparser.parse(e['end']['dateTime']).strftime('%I:%M %p')}"
+        f"📌 {e['summary']} from {dateparser.parse(e['start']['dateTime']).strftime('%I:%M %p')} to {dateparser.parse(e['end']['dateTime']).strftime('%I:%M %p')}"
         for e in events
     ])
 
@@ -402,5 +408,6 @@ def find_free_slots(date: str, duration_minutes: int = 60) -> str:
         current = max(current, end)
     if (end_dt - current).total_seconds() >= duration_minutes * 60:
         free.append(f"{current.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}")
-    return "\n".join(free) if free else f"\u274c No free {duration_minutes}-minute slots on {date}."
+    return "\n".join(free) if free else f"❌ No free {duration_minutes}-minute slots on {date}."
+
 
