@@ -37,18 +37,6 @@ import streamlit as st
 import os
 import json
 from openai import OpenAI
-
-# 🚫 Monkey-patch OpenAI constructor to remove 'proxies'
-_original_init = OpenAI.__init__
-
-def patched_init(self, *args, **kwargs):
-    if "proxies" in kwargs:
-        print("⚠️ Removing unexpected 'proxies' from OpenAI constructor")
-        del kwargs["proxies"]
-    return _original_init(self, *args, **kwargs)
-
-OpenAI.__init__ = patched_init
-
 from function.googlecalendar import (
     book_event,
     cancel_event,
@@ -57,23 +45,30 @@ from function.googlecalendar import (
     find_free_slots,
 )
 
-# ✅ Set up OpenAI Client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# ✅ Patch: Clean OpenAI Client to strip 'proxies' if injected from anywhere
+class CleanOpenAI(OpenAI):
+    def __init__(self, *args, **kwargs):
+        kwargs.pop("proxies", None)  # Remove 'proxies' if present
+        print("✅ CleanOpenAI init called with kwargs:", kwargs)
+        super().__init__(*args, **kwargs)
 
-# ✅ Streamlit UI
+# ✅ Use patched OpenAI client
+client = CleanOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# ✅ Streamlit setup
 st.set_page_config(page_title="📅 Google Calendar Assistant", page_icon="📅")
 st.title("📅 Google Calendar Assistant")
 
-# ✅ Session state to keep chat history
+# ✅ Session state for chat
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# ✅ Prompt Input
+# ✅ User prompt input
 user_input = st.chat_input("You:")
 if user_input:
     st.session_state.chat_history.append({"role": "user", "content": user_input})
 
-    # ✅ Tool/function definitions
+    # ✅ Function schema for tools
     function_definitions = [
         {
             "name": "book_event",
@@ -148,7 +143,7 @@ if user_input:
         "find_free_slots": find_free_slots
     }
 
-    # ✅ Invoke OpenAI + tool calls
+    # ✅ LLM + Tool call logic
     with st.spinner("Thinking..."):
         try:
             response = client.chat.completions.create(
@@ -157,6 +152,7 @@ if user_input:
                 functions=function_definitions,
                 function_call="auto"
             )
+
             message = response.choices[0].message
 
             if message.function_call:
@@ -177,4 +173,3 @@ if user_input:
 
         except Exception as e:
             st.error(f"⚠️ Error: {e}")
-
