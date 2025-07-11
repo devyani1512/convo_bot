@@ -36,6 +36,24 @@
 import streamlit as st
 import os
 import json
+
+# Monkey-patch to detect unexpected 'proxies' usage
+import openai
+import traceback
+
+original_init = openai.OpenAI.__init__
+
+def debug_init(self, *args, **kwargs):
+    if "proxies" in kwargs:
+        print("⚠️ FOUND PROXIES:", kwargs["proxies"])
+        traceback.print_stack()
+        raise RuntimeError("❌ 'proxies' argument passed to OpenAI() unexpectedly!")
+    else:
+        print("✅ OpenAI init called with args:", args, "kwargs:", kwargs)
+    return original_init(self, *args, **kwargs)
+
+openai.OpenAI.__init__ = debug_init
+
 from openai import OpenAI
 from function.googlecalendar import (
     book_event,
@@ -45,23 +63,23 @@ from function.googlecalendar import (
     find_free_slots,
 )
 
-# ✅ Set up OpenAI Client (no proxies)
+# ✅ Set up OpenAI Client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ✅ Streamlit UI
 st.set_page_config(page_title="📅 Google Calendar Assistant", page_icon="📅")
 st.title("📅 Google Calendar Assistant")
 
-# ✅ Session state to keep chat history
+# ✅ Session state for chat
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# ✅ Prompt Input
+# ✅ User input
 user_input = st.chat_input("You:")
 if user_input:
     st.session_state.chat_history.append({"role": "user", "content": user_input})
 
-    # ✅ Tool/function definitions
+    # ✅ Define functions schema
     function_definitions = [
         {
             "name": "book_event",
@@ -128,6 +146,7 @@ if user_input:
         },
     ]
 
+    # ✅ Function name map
     fn_map = {
         "book_event": book_event,
         "cancel_event": cancel_event,
@@ -136,7 +155,7 @@ if user_input:
         "find_free_slots": find_free_slots
     }
 
-    # ✅ Invoke OpenAI + tool calls
+    # ✅ Call OpenAI + function
     with st.spinner("Thinking..."):
         try:
             response = client.chat.completions.create(
