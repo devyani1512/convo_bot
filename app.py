@@ -34,7 +34,7 @@
 # 📁 app.py
 
 import streamlit as st
-import openai
+import openai import OPENAI
 import os
 import json
 from function.googlecalendar import (
@@ -50,7 +50,7 @@ st.set_page_config(page_title="📅 Google Calendar Assistant", page_icon="📅"
 st.title("📅 Google Calendar Assistant")
 
 # ✅ Setup OpenAI client (for SDK >= 1.0.0)
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ✅ Set up chat history in Streamlit session
 if "chat_history" not in st.session_state:
