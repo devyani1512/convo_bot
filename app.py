@@ -36,25 +36,19 @@
 import streamlit as st
 import os
 import json
-
-# Monkey-patch to detect unexpected 'proxies' usage
-import openai
-import traceback
-
-original_init = openai.OpenAI.__init__
-
-def debug_init(self, *args, **kwargs):
-    if "proxies" in kwargs:
-        print("⚠️ FOUND PROXIES:", kwargs["proxies"])
-        traceback.print_stack()
-        raise RuntimeError("❌ 'proxies' argument passed to OpenAI() unexpectedly!")
-    else:
-        print("✅ OpenAI init called with args:", args, "kwargs:", kwargs)
-    return original_init(self, *args, **kwargs)
-
-openai.OpenAI.__init__ = debug_init
-
 from openai import OpenAI
+
+# 🚫 Monkey-patch OpenAI constructor to remove 'proxies'
+_original_init = OpenAI.__init__
+
+def patched_init(self, *args, **kwargs):
+    if "proxies" in kwargs:
+        print("⚠️ Removing unexpected 'proxies' from OpenAI constructor")
+        del kwargs["proxies"]
+    return _original_init(self, *args, **kwargs)
+
+OpenAI.__init__ = patched_init
+
 from function.googlecalendar import (
     book_event,
     cancel_event,
@@ -70,16 +64,16 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 st.set_page_config(page_title="📅 Google Calendar Assistant", page_icon="📅")
 st.title("📅 Google Calendar Assistant")
 
-# ✅ Session state for chat
+# ✅ Session state to keep chat history
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# ✅ User input
+# ✅ Prompt Input
 user_input = st.chat_input("You:")
 if user_input:
     st.session_state.chat_history.append({"role": "user", "content": user_input})
 
-    # ✅ Define functions schema
+    # ✅ Tool/function definitions
     function_definitions = [
         {
             "name": "book_event",
@@ -146,7 +140,6 @@ if user_input:
         },
     ]
 
-    # ✅ Function name map
     fn_map = {
         "book_event": book_event,
         "cancel_event": cancel_event,
@@ -155,7 +148,7 @@ if user_input:
         "find_free_slots": find_free_slots
     }
 
-    # ✅ Call OpenAI + function
+    # ✅ Invoke OpenAI + tool calls
     with st.spinner("Thinking..."):
         try:
             response = client.chat.completions.create(
@@ -184,3 +177,4 @@ if user_input:
 
         except Exception as e:
             st.error(f"⚠️ Error: {e}")
+
