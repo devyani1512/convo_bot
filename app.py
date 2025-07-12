@@ -34,6 +34,8 @@
 # 📁 app.py
 
 import streamlit as st
+st.set_page_config(page_title="📅 Google Calendar Assistant", page_icon="📅")  # ✅ MUST be the first Streamlit command
+
 import os
 import json
 import openai
@@ -45,14 +47,13 @@ from function.googlecalendar import (
     find_free_slots,
 )
 
-# ✅ Show OpenAI SDK version
-st.sidebar.write("🧠 OpenAI SDK Version:", openai.__version__)
-
-# ✅ Set up API key (for openai==0.28.1)
+# ✅ Legacy OpenAI SDK style
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# ✅ Streamlit UI
-st.set_page_config(page_title="📅 Google Calendar Assistant", page_icon="📅")
+# ✅ Debugging proxy values (optional)
+st.sidebar.write("🌐 HTTP_PROXY:", os.environ.get("HTTP_PROXY"))
+st.sidebar.write("🌐 HTTPS_PROXY:", os.environ.get("HTTPS_PROXY"))
+
 st.title("📅 Google Calendar Assistant")
 
 # ✅ Session state to keep chat history
@@ -148,9 +149,9 @@ if user_input:
                 functions=function_definitions,
                 function_call="auto"
             )
-            message = response.choices[0].message
+            message = response["choices"][0]["message"]
 
-            if message.get("function_call"):
+            if "function_call" in message:
                 fn_name = message["function_call"]["name"]
                 args = json.loads(message["function_call"]["arguments"])
                 result = fn_map[fn_name](**args)
