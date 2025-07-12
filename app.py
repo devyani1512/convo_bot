@@ -45,23 +45,27 @@ from function.googlecalendar import (
     find_free_slots,
 )
 
-# ✅ Set up API key (for openai==1.16.0)
+# ✅ OpenAI API key
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# ✅ Streamlit UI
+# ✅ Streamlit UI setup
 st.set_page_config(page_title="📅 Google Calendar Assistant", page_icon="📅")
 st.title("📅 Google Calendar Assistant")
+
+# ✅ Display proxy envs if present
+st.sidebar.write("🌐 HTTP_PROXY:", os.environ.get("HTTP_PROXY"))
+st.sidebar.write("🌐 HTTPS_PROXY:", os.environ.get("HTTPS_PROXY"))
 
 # ✅ Session state to keep chat history
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# ✅ Prompt Input
+# ✅ Chat input
 user_input = st.chat_input("You:")
 if user_input:
     st.session_state.chat_history.append({"role": "user", "content": user_input})
 
-    # ✅ Tool/function definitions
+    # ✅ Function calling definitions
     function_definitions = [
         {
             "name": "book_event",
@@ -145,7 +149,7 @@ if user_input:
                 functions=function_definitions,
                 function_call="auto"
             )
-            message = response.choices[0].message
+            message = response["choices"][0]["message"]
 
             if message.get("function_call"):
                 fn_name = message["function_call"]["name"]
