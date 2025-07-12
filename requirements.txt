@@ -1,5 +1,5 @@
 # ✅ OpenAI latest SDK
-openai==1.16.0
+openai==0.28.1
 
 # ✅ Streamlit for frontend
 streamlit==1.35.0
