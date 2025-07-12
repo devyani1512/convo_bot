@@ -306,7 +306,9 @@
 #     return "\n".join(free_slots) if free_slots else f"❌ No free {duration_minutes}-minute slots on {date}."
 
 # function/googlecalendar.py
-import os, json, dateparser
+import os
+import json
+import dateparser
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from datetime import datetime
@@ -314,9 +316,11 @@ from datetime import datetime
 TIMEZONE = "Asia/Kolkata"
 
 def get_calendar_service():
-    token_info = json.loads(os.getenv("CLIENT_CONFIG_JSON"))
+    if "credentials" not in os.environ:
+        raise Exception("❌ No OAuth credentials found in environment.")
+    user_creds = json.loads(os.environ["credentials"])
     credentials = Credentials.from_authorized_user_info(
-        info=token_info,
+        info=user_creds,
         scopes=["https://www.googleapis.com/auth/calendar"]
     )
     return build("calendar", "v3", credentials=credentials)
@@ -409,5 +413,6 @@ def find_free_slots(date: str, duration_minutes: int = 60) -> str:
     if (end_dt - current).total_seconds() >= duration_minutes * 60:
         free.append(f"{current.strftime('%I:%M %p')} to {end_dt.strftime('%I:%M %p')}")
     return "\n".join(free) if free else f"❌ No free {duration_minutes}-minute slots on {date}."
+
 
 
