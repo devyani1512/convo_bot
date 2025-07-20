@@ -1,40 +1,6 @@
-# import streamlit as st
-# from setup import agent_executor
-# from langchain.schema import HumanMessage
-
-# st.set_page_config(page_title="Google Calendar Assistant", page_icon="📅")
-# st.title("📅 Google Calendar Assistant")
-
-# user_input = st.text_input("You:", "")
-
-# if user_input:
-#     greetings = ["hi", "hello", "hey", "how are you", "who are you"]
-#     lower_input = user_input.lower()
-#     if any(greet in lower_input for greet in greetings):
-#         if "how are you" in lower_input:
-#             st.write("🤖 I'm great, thanks! What can I help you schedule today?")
-#         elif "who" in lower_input:
-#             st.write("🧠 I’m your Google Calendar assistant, ready to help you manage your schedule.")
-#         else:
-#             st.write("👋 Hi! How can I assist with your calendar?")
-#     else:
-#         try:
-#             with st.spinner("Working..."):
-#                 result = agent_executor.invoke({
-#                     "input": [HumanMessage(content=user_input)],
-#                     "chat_history": []
-#                 })
-#             st.success(result["output"])
-#         except Exception as e:
-#             st.error(f"⚠️ Something went wrong: {e}")
-
-# app.py
-# app.py
-# 📁 File: app.py
-# 📁 app.py
 
 import streamlit as st
-st.set_page_config(page_title="📅 Google Calendar Assistant", page_icon="📅")  # ✅ MUST be the first Streamlit command
+st.set_page_config(page_title="📅 Google Calendar Assistant", page_icon="📅")  
 
 import os
 import json
@@ -47,25 +13,25 @@ from function.googlecalendar import (
     find_free_slots,
 )
 
-# ✅ Legacy OpenAI SDK style
+#  Legacy OpenAI SDK style
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# ✅ Debugging proxy values (optional)
+#  Debugging proxy values (optional)
 st.sidebar.write("🌐 HTTP_PROXY:", os.environ.get("HTTP_PROXY"))
 st.sidebar.write("🌐 HTTPS_PROXY:", os.environ.get("HTTPS_PROXY"))
 
-st.title("📅 Google Calendar Assistant")
+st.title(" Google Calendar Assistant")
 
-# ✅ Session state to keep chat history
+#  Session state to keep chat history
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# ✅ Prompt Input
+# Prompt Input
 user_input = st.chat_input("You:")
 if user_input:
     st.session_state.chat_history.append({"role": "user", "content": user_input})
 
-    # ✅ Tool/function definitions
+    #  Tool/function definitions
     function_definitions = [
         {
             "name": "book_event",
@@ -140,7 +106,7 @@ if user_input:
         "find_free_slots": find_free_slots
     }
 
-    # ✅ OpenAI API call
+    #  OpenAI API call
     with st.spinner("Thinking..."):
         try:
             response = openai.ChatCompletion.create(
@@ -168,4 +134,45 @@ if user_input:
                 st.success(reply)
 
         except Exception as e:
-            st.error(f"⚠️ Error: {e}")
+            st.error(f" Error: {e}")
+
+
+
+
+
+# import streamlit as st
+# from setup import agent_executor
+# from langchain.schema import HumanMessage
+
+# st.set_page_config(page_title="Google Calendar Assistant", page_icon="📅")
+# st.title("📅 Google Calendar Assistant")
+
+# user_input = st.text_input("You:", "")
+
+# if user_input:
+#     greetings = ["hi", "hello", "hey", "how are you", "who are you"]
+#     lower_input = user_input.lower()
+#     if any(greet in lower_input for greet in greetings):
+#         if "how are you" in lower_input:
+#             st.write("🤖 I'm great, thanks! What can I help you schedule today?")
+#         elif "who" in lower_input:
+#             st.write("🧠 I’m your Google Calendar assistant, ready to help you manage your schedule.")
+#         else:
+#             st.write("👋 Hi! How can I assist with your calendar?")
+#     else:
+#         try:
+#             with st.spinner("Working..."):
+#                 result = agent_executor.invoke({
+#                     "input": [HumanMessage(content=user_input)],
+#                     "chat_history": []
+#                 })
+#             st.success(result["output"])
+#         except Exception as e:
+#             st.error(f"⚠️ Something went wrong: {e}")
+
+# app.py
+# app.py
+# 📁 File: app.py
+# 📁 app.py
+
+
