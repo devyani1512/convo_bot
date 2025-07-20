@@ -144,7 +144,7 @@ if user_input:
     with st.spinner("Thinking..."):
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o",
                 messages=st.session_state.chat_history,
                 functions=function_definitions,
                 function_call="auto"
